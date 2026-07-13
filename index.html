@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ShadowChat 2.0</title>
+    <meta name="description" content="Secure encrypted messaging platform.">
+    <meta name="keywords" content="chat, secure, messaging">
+    <meta name="author" content="ShadowChat">
+    <meta name="theme-color" content="#f72585">
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="ShadowChat 2.0">
+    <meta property="og:description" content="Secure encrypted messaging platform.">
+    <meta property="og:type" content="website">
+
+    <!-- Google Fonts - Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💬</text></svg>">
+
+    <link rel="stylesheet" href="src/style.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Intro Layer -->
+        <div id="intro-layer" class="layer active">
+            <div class="glitch-wrapper">
+                <div class="glitch-text" data-text="ShadowChat">ShadowChat</div>
+                <div class="intro-subtext">Establishing secure connection...</div>
+            </div>
+        </div>
+
+        <!-- Chat Layer (hidden, revealed by secret sequence) -->
+        <div id="chat-layer" class="layer">
+            <!-- Auth and Chat views are injected here -->
+            <div id="auth-view" class="hidden">
+                <!-- Populated by auth.js -->
+            </div>
+            <div id="chat-view" class="hidden">
+                <!-- Populated by chat.js -->
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="src/main.js"></script>
+</body>
+</html>
