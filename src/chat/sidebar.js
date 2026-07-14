@@ -407,11 +407,18 @@ export function updateUserPhoto(photoURL) {
   const el = document.getElementById('sb-user-avatar');
   if (!el) return;
   if (photoURL) {
-    const img = document.createElement('img');
-    img.className = 'sb-avatar';
-    img.id = 'sb-user-avatar';
-    img.src = photoURL;
-    el.replaceWith(img);
+    if (el.tagName === 'IMG') {
+      el.src = photoURL;
+    } else {
+      const img = document.createElement('img');
+      img.className = 'sb-avatar';
+      img.id = 'sb-user-avatar';
+      img.src = photoURL;
+      img.addEventListener('click', () => {
+        if (_callbacks && _callbacks.onProfile) _callbacks.onProfile();
+      });
+      el.replaceWith(img);
+    }
   }
 }
 
