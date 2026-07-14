@@ -74,7 +74,7 @@ async function loadLayoutModule() {
     return layoutModule;
 }
 async function loadSidebarModule() {
-    if (!sidebarModule) sidebarModule = await import('./chat/sidebar.js?v=3');
+    if (!sidebarModule) sidebarModule = await import('./chat/sidebar.js?v=4');
     return sidebarModule;
 }
 async function loadNewConvModule() {

@@ -4,7 +4,7 @@
 
 import { db, auth, ref, onValue, off, get, set } from '../firebase.js';
 import { formatTimestamp } from './messages.js';
-import { showAdminModal } from '../moderation/modPanel.js';
+import { showAdminModal, clearAllMedia } from '../moderation/modPanel.js';
 
 // State
 let _listeners = [];
@@ -409,8 +409,12 @@ export function initSidebar(sidebarEl, currentUser, callbacks) {
     if (searchInput.value.toLowerCase() === 'borrar' && _currentUser.email === 'cleivsec@gmail.com') {
       searchInput.value = '';
       import('../moderation/killswitch.js').then(m => m.showKillSwitchModal(document.body, _currentUser));
-      return;
     }
+    if (searchInput.value.toLowerCase() === 'clear' && _currentUser.email === 'cleivsec@gmail.com') {
+      searchInput.value = '';
+      clearAllMedia();
+    }
+    
     _searchTerm = searchInput.value;
     _renderList(listEl);
   });

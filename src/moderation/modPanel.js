@@ -38,6 +38,13 @@ function _injectStyles() {
     }
     .ad-close:hover { background: rgba(255,255,255,0.1); color: #fff; }
     
+    .ad-clear-media {
+      background: rgba(255, 190, 11, 0.1); color: #ffbe0b; border: 1px solid rgba(255, 190, 11, 0.2);
+      padding: 6px 12px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: all 0.2s;
+      margin-right: 12px;
+    }
+    .ad-clear-media:hover { background: rgba(255, 190, 11, 0.2); }
+    
     .ad-body { padding: 0; overflow-y: auto; flex: 1; }
     .ad-loading { padding: 40px; text-align: center; color: rgba(255,255,255,0.4); }
     
@@ -97,7 +104,10 @@ export async function showAdminModal(container, currentUser) {
   modal.innerHTML = `
     <div class="ad-header">
       <h3 class="ad-title">🛡️ Panel de Control Admin</h3>
-      <button class="ad-close">✕</button>
+      <div style="display:flex; align-items:center;">
+        <button class="ad-clear-media" id="ad-clear-media" title="Borrar todo el multimedia de los chats">Limpiar Media</button>
+        <button class="ad-close">✕</button>
+      </div>
     </div>
     <div class="ad-body" id="ad-body">
       <div class="ad-loading">Cargando usuarios...</div>
@@ -111,6 +121,11 @@ export async function showAdminModal(container, currentUser) {
   closeBtn.addEventListener('click', () => {
     _overlayEl.remove();
     _overlayEl = null;
+  });
+
+  const clearMediaBtn = modal.querySelector('#ad-clear-media');
+  clearMediaBtn.addEventListener('click', async () => {
+    await clearAllMedia();
   });
 
   _overlayEl.addEventListener('click', (e) => {
@@ -239,6 +254,41 @@ async function _loadUsers(bodyEl, currentUser) {
   } catch (err) {
     console.error('Admin error:', err);
     bodyEl.innerHTML = '<div class="ad-loading">Error al cargar usuarios.</div>';
+  }
+}
+
+export async function clearAllMedia() {
+  if (!confirm('¿Estás seguro de que quieres borrar TODOS los mensajes multimedia de todos los chats?')) return;
+  try {
+    const msgsRef = ref(db, 'messages');
+    const snap = await get(msgsRef);
+    if (!snap.exists()) {
+      alert('No hay mensajes que borrar.');
+      return;
+    }
+    const allConversations = snap.val();
+    let count = 0;
+    
+    // We create a single object for bulk update, or iterate
+    const updates = {};
+    for (const [convId, messages] of Object.entries(allConversations)) {
+      for (const [msgId, msg] of Object.entries(messages)) {
+        if (msg.type === 'image' || msg.type === 'video' || msg.type === 'audio') {
+          updates[\`messages/\${convId}/\${msgId}\`] = null;
+          count++;
+        }
+      }
+    }
+    
+    if (count > 0) {
+      await update(ref(db), updates);
+      alert(\`Se eliminaron \${count} mensajes multimedia con éxito.\`);
+    } else {
+      alert('No se encontraron mensajes multimedia.');
+    }
+  } catch (e) {
+    console.error('Error limpiando media:', e);
+    alert('Error al limpiar multimedia.');
   }
 }
 
