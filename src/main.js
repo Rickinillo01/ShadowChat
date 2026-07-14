@@ -22,13 +22,17 @@ if (window.Capacitor && window.Capacitor.isNative) {
 } else {
     window.OneSignalDeferred = window.OneSignalDeferred || [];
     OneSignalDeferred.push(async function(OneSignal) {
-      await OneSignal.init({
-        appId: "17d0128f-85bd-46e9-b575-e5cb865752a3",
-        safari_web_id: "web.onesignal.auto.40785b5b-169b-4884-a5e0-8aeabe17c634",
-        notifyButton: {
-          enable: true,
-        },
-      });
+      try {
+          await OneSignal.init({
+            appId: "17d0128f-85bd-46e9-b575-e5cb865752a3",
+            safari_web_id: "web.onesignal.auto.40785b5b-169b-4884-a5e0-8aeabe17c634",
+            notifyButton: {
+              enable: true,
+            },
+          });
+      } catch (e) {
+          console.warn("OneSignal init:", e.message || e);
+      }
     });
 }
 
