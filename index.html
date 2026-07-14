@@ -57,6 +57,21 @@
     <!-- Security & Anti-Screenshot protection -->
     <script src="./src/security.js"></script>
 
+    <script>
+        window.addEventListener('error', function(e) {
+            var err = document.createElement('div');
+            err.style.cssText = 'position:fixed;top:0;left:0;right:0;background:red;color:white;z-index:999999;padding:10px;font-family:monospace;font-size:12px;word-wrap:break-word;';
+            err.textContent = 'Error: ' + e.message + ' at ' + e.filename + ':' + e.lineno;
+            document.body.appendChild(err);
+        });
+        window.addEventListener('unhandledrejection', function(e) {
+            var err = document.createElement('div');
+            err.style.cssText = 'position:fixed;top:0;left:0;right:0;background:orange;color:white;z-index:999999;padding:10px;font-family:monospace;font-size:12px;word-wrap:break-word;';
+            err.textContent = 'Promise Error: ' + (e.reason ? (e.reason.message || e.reason) : 'Unknown');
+            document.body.appendChild(err);
+        });
+    </script>
+
     <!-- App Entry Point -->
     <script type="module" src="./src/main.js?v=2"></script>
 </body>
