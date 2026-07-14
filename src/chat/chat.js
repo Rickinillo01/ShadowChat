@@ -1323,18 +1323,17 @@ export async function initChat(container, user, conversationId, options = {}) {
   
   cameraBtn.addEventListener('click', () => {
     if (window.navigator && window.navigator.camera) {
-      window.navigator.camera.getPicture((imageData) => {
-        const byteCharacters = atob(imageData);
-        const byteNumbers = new Array(byteCharacters.length);
-        for (let i = 0; i < byteCharacters.length; i++) {
-          byteNumbers[i] = byteCharacters.charCodeAt(i);
+      window.navigator.camera.getPicture(async (imageData) => {
+        try {
+            const response = await fetch('data:image/jpeg;base64,' + imageData);
+            const blob = await response.blob();
+            const file = new File([blob], `Camera_${Date.now()}.jpg`, { type: 'image/jpeg' });
+            
+            _fileType = 'image';
+            _handleFileSelection(file, 'image');
+        } catch(e) {
+            console.error("Camera process error:", e);
         }
-        const byteArray = new Uint8Array(byteNumbers);
-        const blob = new Blob([byteArray], {type: 'image/jpeg'});
-        const file = new File([blob], `Camera_${Date.now()}.jpg`, { type: 'image/jpeg' });
-        
-        _fileType = 'image';
-        _handleFileSelection(file, 'image');
       }, (err) => {
         console.warn("Camera cancelled or failed:", err);
       }, {

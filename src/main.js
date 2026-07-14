@@ -66,7 +66,7 @@ async function loadAuthModule() {
     return authModule;
 }
 async function loadChatModule() {
-    if (!chatModule) chatModule = await import('./chat/chat.js?v=3');
+    if (!chatModule) chatModule = await import('./chat/chat.js?v=4');
     return chatModule;
 }
 async function loadLayoutModule() {
@@ -217,8 +217,7 @@ document.addEventListener('backbutton', (e) => {
     // 2. Close Chat and return to Sidebar
     if (state.currentLayer === 'chat' && state.currentConvId) {
         const backBtn = document.querySelector('.ch-back');
-        // Only click if the back button is visible in the UI (mobile mode)
-        if (backBtn && backBtn.offsetParent !== null) {
+        if (backBtn) {
             backBtn.click();
             return;
         }
