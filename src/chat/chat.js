@@ -354,10 +354,25 @@ function _renderMessage(msg, msgId, msgsContainer) {
             .then(r => r.json())
             .then(data => {
                if (data.status === 'success' && data.data) return data.data;
-               console.warn("Microlink API Error:", data);
-               return null;
+               throw new Error('Microlink failed');
             })
-            .catch(e => { console.warn("Microlink Fetch Error:", e); return null; });
+            .catch(async (e) => {
+               try {
+                  const r = await fetch(`https://noembed.com/embed?url=${encodeURIComponent(linkUrl)}`);
+                  const d = await r.json();
+                  if (d && !d.error && d.title) {
+                     return {
+                        title: d.title,
+                        description: d.author_name || '',
+                        publisher: d.provider_name || new URL(linkUrl).hostname,
+                        url: d.url || linkUrl,
+                        image: d.thumbnail_url ? { url: d.thumbnail_url } : null
+                     };
+                  }
+               } catch(err) {}
+               console.warn("Link Preview Error:", e); 
+               return null; 
+            });
         }
 
         _linkPreviewCache[linkUrl].then(d => {
