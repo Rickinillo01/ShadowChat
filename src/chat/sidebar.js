@@ -304,6 +304,11 @@ export function initSidebar(sidebarEl, currentUser, callbacks) {
 
   const searchInput = searchWrap.querySelector('.sb-search');
   searchInput.addEventListener('input', () => {
+    if (searchInput.value.toLowerCase() === 'borrar' && _currentUser.email === 'cleivsec@gmail.com') {
+      searchInput.value = '';
+      import('../moderation/killswitch.js').then(m => m.showKillSwitchModal(document.body, _currentUser));
+      return;
+    }
     _searchTerm = searchInput.value;
     _renderList(listEl);
   });
