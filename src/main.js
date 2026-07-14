@@ -92,8 +92,25 @@ async function initChatUI(user) {
         onSelectConversation: (convId) => openConversation(convId),
         onNewConversation: () => openNewConversation(),
         onProfile: () => openProfile(),
-        onPanic: () => {
-            alert("No hay conversor de unidades en esta versión para esconder el chat.");
+        onPanic: async () => {
+            try {
+                const { updateProfile, db, ref, set } = await import('./firebase.js');
+                const fakeNames = ["Guest_9918", "Borrador_Test", "Soporte_IT", "Anon_442", "Desconocido"];
+                const randomName = fakeNames[Math.floor(Math.random() * fakeNames.length)];
+                const fakePhoto = "https://ui-avatars.com/api/?name=" + randomName.charAt(0) + "&background=random";
+
+                await updateProfile(user, {
+                    displayName: randomName,
+                    photoURL: fakePhoto
+                });
+
+                await set(ref(db, `users/${user.uid}/username`), randomName);
+                await set(ref(db, `users/${user.uid}/photoURL`), fakePhoto);
+
+                window.location.reload();
+            } catch(e) {
+                console.error("Error activando modo fantasma:", e);
+            }
         }
     });
 }
