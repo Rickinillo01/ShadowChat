@@ -343,7 +343,8 @@ export function initSidebar(sidebarEl, currentUser, callbacks) {
       try {
         const inviteId = "inv_" + Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
         const expiresAt = Date.now() + 60 * 60 * 1000; // 1 hour
-        const inviteUrl = window.location.origin + window.location.pathname + "?invite=" + inviteId;
+        const baseUrl = 'https://rickinillo01.github.io/ShadowChat/';
+        const inviteUrl = baseUrl + "?invite=" + inviteId;
         
         // Copy to clipboard FIRST (must happen immediately after click on mobile)
         try {

@@ -44,6 +44,7 @@ const ICONS = {
   mic: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg>`,
   stop: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2" ry="2"/></svg>`,
   trash: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>`,
+  camera: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>`,
   clip: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>`,
   close: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,
   ghost: `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.3"><path d="M12 2a8 8 0 0 0-8 8v12l3-3 2 2 3-3 3 3 2-2 3 3V10a8 8 0 0 0-8-8z"/><circle cx="9" cy="10" r="1" fill="currentColor"/><circle cx="15" cy="10" r="1" fill="currentColor"/></svg>`,
@@ -174,8 +175,8 @@ function _injectStyles() {
     .ch-input { flex:1; padding:10px 14px; border-radius:20px; border:1px solid rgba(255,255,255,0.06); background:rgba(255,255,255,0.04); color:#e2e8f0; font-size:0.88rem; font-family:'Inter',sans-serif; outline:none; resize:none; max-height:100px; line-height:1.4; transition:border-color 0.2s; }
     .ch-input:focus { border-color:rgba(0,245,212,0.25); }
     .ch-input::placeholder { color:rgba(255,255,255,0.2); }
-    .ch-send-btn { background:rgba(0,245,212,0.15); border:none; color:#00f5d4; cursor:pointer; padding:8px; border-radius:50%; display:flex; transition:all 0.2s; flex-shrink:0; }
-    .ch-send-btn:hover { background:rgba(0,245,212,0.25); transform:scale(1.08); }
+    .ch-send-btn, .ch-camera-btn { background:rgba(0,245,212,0.15); border:none; color:#00f5d4; cursor:pointer; padding:8px; border-radius:50%; display:flex; transition:all 0.2s; flex-shrink:0; }
+    .ch-send-btn:hover, .ch-camera-btn:hover { background:rgba(0,245,212,0.25); transform:scale(1.08); }
     .ch-send-btn.recording { background:rgba(247,37,133,0.15); color:#f72585; animation:chPulse 1.5s infinite; }
     @keyframes chPulse { 0% { box-shadow:0 0 0 0 rgba(247,37,133,0.4); } 70% { box-shadow:0 0 0 10px rgba(247,37,133,0); } 100% { box-shadow:0 0 0 0 rgba(247,37,133,0); } }
     .ch-recording-ui { display:flex; align-items:center; gap:8px; flex:1; padding:10px 14px; background:rgba(247,37,133,0.05); border-radius:20px; color:#f72585; font-size:0.88rem; font-family:'Inter',sans-serif; min-width:0; overflow:hidden; }
@@ -1227,6 +1228,8 @@ export async function initChat(container, user, conversationId, options = {}) {
         stream.getTracks().forEach(t => t.stop());
 
         textInput.style.display = '';
+        const camBtn = document.querySelector('.ch-camera-btn');
+        if (camBtn) camBtn.style.display = '';
         recordingUI.style.display = 'none';
         recordingUI.remove();
         sendBtn.classList.remove('recording');
@@ -1244,6 +1247,8 @@ export async function initChat(container, user, conversationId, options = {}) {
       draw();
 
       textInput.style.display = 'none';
+      const camBtn = document.querySelector('.ch-camera-btn');
+      if (camBtn) camBtn.style.display = 'none';
       inputRow.insertBefore(recordingUI, sendBtn);
       recordingUI.style.display = 'flex';
       sendBtn.innerHTML = ICONS.stop;
@@ -1318,6 +1323,22 @@ export async function initChat(container, user, conversationId, options = {}) {
   inputRow.appendChild(ttlBtn);
   inputRow.appendChild(drawerWrap);
   inputRow.appendChild(textInput);
+  
+  const cameraBtn = _el('button', { className: 'ch-camera-btn', innerHTML: ICONS.camera });
+  const cameraInput = _el('input', { type: 'file', accept: 'image/*', capture: 'environment', style: 'display:none' });
+  
+  cameraBtn.addEventListener('click', () => {
+    cameraInput.click();
+  });
+  
+  cameraInput.addEventListener('change', async () => {
+    _fileType = 'image';
+    _handleFileSelection(cameraInput.files[0], 'image');
+    cameraInput.value = '';
+  });
+
+  inputRow.appendChild(cameraBtn);
+  inputRow.appendChild(cameraInput);
   inputRow.appendChild(sendBtn);
 
   const uSnap = await get(ref(db, `users/${user.uid}`));
