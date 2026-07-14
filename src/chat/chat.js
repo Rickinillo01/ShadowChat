@@ -830,20 +830,18 @@ export async function initChat(container, user, conversationId, options = {}) {
     }
   }
 
-  // Prevent focus loss to keep mobile keyboard open
-  const preventFocus = (e) => {
+  // Use mousedown and touchstart instead of click. 
+  // preventDefault() keeps the keyboard open, but it also kills the click event, so we execute the logic here.
+  const handleSendTrigger = (e) => {
     if (e.cancelable) e.preventDefault();
-  };
-  sendBtn.addEventListener('mousedown', preventFocus);
-  sendBtn.addEventListener('touchstart', preventFocus, { passive: false });
-
-  sendBtn.addEventListener('click', () => {
     if (window._isRecording || (!textInput.value.trim() && !_pendingFile)) {
       _toggleRecording();
     } else {
       _send();
     }
-  });
+  };
+  sendBtn.addEventListener('mousedown', handleSendTrigger);
+  sendBtn.addEventListener('touchstart', handleSendTrigger, { passive: false });
 
   inputRow.appendChild(ttlBtn);
   inputRow.appendChild(attachWrap);
