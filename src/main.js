@@ -17,9 +17,18 @@ function initNativeOneSignal() {
     }
 }
 
-const isNativeApp = !!(window.Capacitor && window.Capacitor.isNative);
+const isNativeApp = !!(window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform() !== 'web');
 
 if (isNativeApp) {
+    // Unregister any rogue service workers (Web Push) installed by accident in the WebView
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(registrations => {
+            for(let registration of registrations) {
+                registration.unregister();
+            }
+        }).catch(e => console.warn("SW unregister error:", e));
+    }
+
     if (window.plugins && window.plugins.OneSignal) {
         initNativeOneSignal();
     } else {
