@@ -113,13 +113,13 @@ function _injectStyles() {
     .ch-reaction { background:var(--chat-surface-2, #16162a); border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:2px 4px; font-size:0.75rem; display:flex; align-items:center; gap:2px; box-shadow:0 2px 5px rgba(0,0,0,0.2); cursor:pointer; }
     .ch-reaction:hover { border-color:var(--chat-accent, #00f5d4); }
     .ch-reaction-count { font-size:0.65rem; color:rgba(255,255,255,0.6); font-weight:600; }
-    .ch-emoji-picker { position:absolute; top:-40px; right:0; background:var(--chat-surface-2, #16162a); border:1px solid rgba(255,255,255,0.1); border-radius:16px; padding:4px 8px; display:flex; gap:8px; box-shadow:0 4px 15px rgba(0,0,0,0.3); opacity:0; pointer-events:none; transition:all 0.2s; z-index:20; }
+    .ch-emoji-picker { position:absolute; top:-48px; right:0; background:var(--chat-surface-2, #16162a); border:1px solid rgba(255,255,255,0.1); border-radius:24px; padding:6px 12px; display:flex; gap:12px; box-shadow:0 4px 15px rgba(0,0,0,0.3); opacity:0; pointer-events:none; transition:all 0.2s; z-index:20; }
     .ch-msg.received .ch-emoji-picker { right:auto; left:0; }
     @media(min-width: 769px) {
        .ch-bubble:hover .ch-emoji-picker { opacity:1; pointer-events:auto; transform:translateY(-5px); }
     }
     .ch-emoji-picker.visible { opacity:1 !important; pointer-events:auto !important; transform:translateY(-5px) !important; }
-    .ch-emoji-opt { cursor:pointer; font-size:1.2rem; transition:transform 0.15s; padding:4px; border-radius:50%; }
+    .ch-emoji-opt { cursor:pointer; font-size:1.4rem; transition:transform 0.15s; padding:6px; border-radius:50%; display:flex; align-items:center; justify-content:center; }
     .ch-emoji-opt:hover { transform:scale(1.3); background:rgba(255,255,255,0.1); }
     
     .ch-input-area { position:relative; z-index:2; background:var(--chat-surface, #0d0d15); border-top:1px solid rgba(255,255,255,0.06); padding:10px 16px; display:flex; flex-direction:column; gap:8px; flex-shrink:0; }
@@ -445,11 +445,7 @@ function _renderMessage(msg, msgId, msgsContainer) {
   });
   bubble.appendChild(picker);
 
-  let pressTimer;
-  bubble.addEventListener('touchstart', () => { pressTimer = setTimeout(() => picker.classList.add('visible'), 500); }, { passive: true });
-  bubble.addEventListener('touchend', () => { clearTimeout(pressTimer); });
-  bubble.addEventListener('touchcancel', () => { clearTimeout(pressTimer); });
-  bubble.addEventListener('dblclick', () => picker.classList.toggle('visible'));
+  // (Touch events handled below in the wrapper logic)
 
   // Time
   if (msg.isEdited) {
@@ -544,6 +540,7 @@ function _renderMessage(msg, msgId, msgsContainer) {
     
     longPressTimer = setTimeout(() => {
       actionsMenu.classList.add('visible');
+      picker.classList.add('visible');
     }, 500);
   }, { passive: true });
 
@@ -588,6 +585,7 @@ function _renderMessage(msg, msgId, msgsContainer) {
   document.addEventListener('touchstart', (e) => {
     if (!wrapper.contains(e.target)) {
       actionsMenu.classList.remove('visible');
+      picker.classList.remove('visible');
     }
   }, { passive: true });
 
