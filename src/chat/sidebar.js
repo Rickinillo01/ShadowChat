@@ -32,7 +32,7 @@ function _injectStyles() {
       background: var(--chat-surface, #0d0d15);
     }
     .sb-avatar-wrap { position: relative; flex-shrink: 0; display: inline-flex; }
-    .sb-online-dot { position: absolute; bottom: 2px; right: 2px; width: 10px; height: 10px; background: #00f5d4; border: 2px solid var(--chat-surface, #0d0d15); border-radius: 50%; z-index: 2; box-shadow: 0 0 5px rgba(0, 245, 212, 0.5); }
+    .sb-online-dot { position: absolute; bottom: 2px; right: 2px; width: 10px; height: 10px; background: #00f5d4; border-radius: 50%; border: 2px solid #1a1b1e; }
     .sb-avatar {
       width: 38px; height: 38px; border-radius: 50%; object-fit: cover;
       cursor: pointer; flex-shrink: 0; transition: transform 0.2s;
@@ -119,10 +119,22 @@ function _injectStyles() {
       font-family: 'Inter', sans-serif; overflow: hidden;
       text-overflow: ellipsis; white-space: nowrap; margin-top: 2px;
     }
+    .sb-item-preview.unread {
+      color: #f1f3f5; font-weight: 600;
+    }
     .sb-item-time {
       font-size: 0.7rem; color: rgba(255,255,255,0.25);
       font-family: 'Inter', sans-serif; flex-shrink: 0; align-self: flex-start;
       margin-top: 2px;
+    }
+    .sb-item-time.unread {
+      color: #00f5d4; font-weight: 600;
+    }
+    .sb-item-unread {
+      background: #00f5d4; color: #000; font-size: 0.7rem; font-weight: bold; 
+      min-width: 18px; height: 18px; border-radius: 9px; 
+      display: flex; align-items: center; justify-content: center; 
+      padding: 0 5px; margin-top: 4px;
     }
     .sb-empty {
       flex: 1; display: flex; align-items: center; justify-content: center;
@@ -254,14 +266,24 @@ async function _renderList(listEl) {
 
     const preview = conv.lastMessage?.text || 'Sin mensajes';
     const time = conv.lastMessage?.timestamp ? formatTimestamp(conv.lastMessage.timestamp) : '';
+    const unreadCount = (conv.unreadCount && conv.unreadCount[_currentUser.uid]) || 0;
+
+    const unreadBadgeHtml = unreadCount > 0 
+      ? `<div class="sb-item-unread">${unreadCount > 99 ? '99+' : unreadCount}</div>` 
+      : '';
+    const timeClass = unreadCount > 0 ? 'sb-item-time unread' : 'sb-item-time';
+    const previewClass = unreadCount > 0 ? 'sb-item-preview unread' : 'sb-item-preview';
 
     item.innerHTML = `
       ${avatarWrap}
       <div class="sb-item-info">
         <div class="sb-item-name">${name}</div>
-        <div class="sb-item-preview">${preview.length > 35 ? preview.slice(0, 35) + '…' : preview}</div>
+        <div class="${previewClass}">${preview.length > 35 ? preview.slice(0, 35) + '…' : preview}</div>
       </div>
-      <div class="sb-item-time">${time}</div>
+      <div style="display:flex; flex-direction:column; align-items:flex-end; gap:4px;">
+        <div class="${timeClass}">${time}</div>
+        ${unreadBadgeHtml}
+      </div>
     `;
 
     item.addEventListener('click', () => {

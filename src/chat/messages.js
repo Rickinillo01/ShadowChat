@@ -55,16 +55,22 @@ export async function sendMessage(conversationId, text, user, ttlMs, options = {
     type: options.type || 'text'
   };
 
-  await update(ref(db), updates);
-
-  // Send Push Notification (OneSignal)
+  // Fetch conversation to update unread counts and send push notifications
   try {
     const convSnap = await get(ref(db, `conversations/${conversationId}`));
     if (convSnap.exists()) {
       const conv = convSnap.val();
       const otherUids = Object.keys(conv.members || {}).filter(uid => uid !== user.uid);
+      
+      // Increment unread count
+      const unreadCount = conv.unreadCount || {};
+      for (const uid of otherUids) {
+          unreadCount[uid] = (unreadCount[uid] || 0) + 1;
+      }
+      updates[`conversations/${conversationId}/unreadCount`] = unreadCount;
+
+      // Send Push Notification
       if (otherUids.length > 0) {
-        // Separamos la clave para evitar el bloqueo del scanner de secretos de GitHub
         const k1 = 'os_v2_app_c7ibfd4fxvdotnlv4xfymv2suoa44z';
         const k2 = 'f34txepbe2opw257wkaaoo55fn5wgbgxczxv4ygw6yk62o45kqrwflsvirsew4tuzt2rdgfxa';
         fetch('https://onesignal.com/api/v1/notifications', {
@@ -84,8 +90,10 @@ export async function sendMessage(conversationId, text, user, ttlMs, options = {
       }
     }
   } catch (e) {
-    console.warn("Could not send push notification:", e);
+    console.warn("Could not process unread/push:", e);
   }
+
+  await update(ref(db), updates);
 
   return msgRef;
 }

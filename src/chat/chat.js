@@ -839,6 +839,11 @@ export async function initChat(container, user, conversationId, options = {}) {
       _memberCount = Object.keys(conv.members || {}).length;
       badge.textContent = `${_memberCount} miembros`;
 
+      // Clear unread count for current user
+      if (conv.unreadCount && conv.unreadCount[user.uid]) {
+         update(ref(db), { [`conversations/${conversationId}/unreadCount/${user.uid}`]: null }).catch(()=>{});
+      }
+
       if (conv.type === 'group') {
         convName.textContent = conv.name || 'Grupo';
       } else {
@@ -1482,6 +1487,9 @@ export async function initChat(container, user, conversationId, options = {}) {
       if (msg.senderId !== _currentUser.uid) {
         console.log(`[DEBUG] Reproduciendo sonido porque el senderId es diferente al current user.`);
         _playNotificationSound('received');
+
+        // Clear unread count since user is already in the chat
+        update(ref(db), { [`conversations/${conversationId}/unreadCount/${_currentUser.uid}`]: null }).catch(()=>{});
         
         if (document.hidden && window.Notification && Notification.permission === 'granted') {
           const notif = new Notification('Nuevo mensaje en ShadowChat', {
