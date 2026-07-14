@@ -3,7 +3,7 @@
 // =============================================================================
 
 import {
-  db, auth, ref, onValue, onChildAdded, onChildRemoved, off, get, set, update, remove
+  db, auth, ref, onValue, onChildAdded, onChildRemoved, onChildChanged, off, get, set, update, remove
 } from '../firebase.js';
 
 import {
@@ -76,12 +76,15 @@ function _injectStyles() {
     .ch-empty p { margin:0; font-size:0.88rem; }
 
     .ch-msg { display:flex; flex-direction:column; max-width:65%; animation:chMsgIn 0.25s ease; position:relative; touch-action: pan-y; }
-    .ch-msg-del, .ch-msg-reply { position:absolute; top:-6px; width:22px; height:22px; border-radius:50%; background:#16162a; border:1px solid rgba(255,255,255,0.1); opacity:0; pointer-events:none; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.2s; z-index:10; box-shadow:0 2px 5px rgba(0,0,0,0.3); padding:0; }
-    .ch-msg-del { right:-6px; color:#f72585; border-color:rgba(247,37,133,0.3); }
-    .ch-msg-reply { right: 20px; color:#00f5d4; border-color:rgba(0,245,212,0.3); }
-    .ch-bubble:hover .ch-msg-del, .ch-bubble:hover .ch-msg-reply { opacity:1; pointer-events:auto; }
-    .ch-msg-del:hover { background:#f72585; color:#fff; transform:scale(1.1); }
-    .ch-msg-reply:hover { background:#00f5d4; color:#000; transform:scale(1.1); }
+    
+    .ch-msg-edited { font-size: 0.65rem; color: rgba(255,255,255,0.4); margin-right: 4px; font-style: italic; display: inline-block; }
+    
+    .ch-msg-actions { position:absolute; top:-10px; right:0; background:#16162a; border:1px solid rgba(255,255,255,0.1); border-radius:12px; display:flex; opacity:0; pointer-events:none; transition:all 0.2s; z-index:10; box-shadow:0 4px 10px rgba(0,0,0,0.4); padding:2px; }
+    .ch-bubble:hover .ch-msg-actions, .ch-msg-actions.visible { opacity:1; pointer-events:auto; }
+    .ch-msg-action-btn { background:none; border:none; width:28px; height:28px; display:flex; align-items:center; justify-content:center; cursor:pointer; border-radius:8px; transition:all 0.2s; color:#00f5d4; }
+    .ch-msg-action-btn:hover { background:rgba(0,245,212,0.1); transform:scale(1.1); }
+    .ch-msg-del-btn { color:#f72585; }
+    .ch-msg-del-btn:hover { background:rgba(247,37,133,0.1); }
     
     .ch-quoted-msg { background:rgba(0,0,0,0.2); border-left:3px solid #00f5d4; padding:6px 10px; border-radius:6px; margin-bottom:6px; cursor:pointer; font-size:0.8rem; overflow:hidden; }
     .ch-quoted-msg .q-sender { color:#00f5d4; font-weight:600; margin-bottom:2px; font-size:0.75rem; }
@@ -247,6 +250,10 @@ function _renderMessage(msg, msgId, msgsContainer) {
   }
 
   // Time
+  if (msg.isEdited) {
+    const editedEl = _el('span', { className: 'ch-msg-edited', textContent: 'Edited ' });
+    bubble.appendChild(editedEl);
+  }
   const timeEl = _el('div', { className: 'ch-msg-time', textContent: formatTimestamp(msg.timestamp) });
   bubble.appendChild(timeEl);
 
@@ -262,17 +269,9 @@ function _renderMessage(msg, msgId, msgsContainer) {
     }
   }
 
-  // Delete button
-  const delBtn = _el('button', { className: 'ch-msg-del', innerHTML: ICONS.close, title: 'Eliminar mensaje para todos' });
-  delBtn.addEventListener('click', async (e) => {
-    e.stopPropagation();
-    if (confirm('¿Eliminar este mensaje para todos?')) {
-      const { deleteMessage } = await import('./messages.js');
-      deleteMessage(_currentConvId, msgId);
-    }
-  });
-  bubble.appendChild(delBtn);
-
+  // Context Menu Actions
+  const actionsMenu = _el('div', { className: 'ch-msg-actions' });
+  
   const triggerReply = () => {
     let previewText = msg.text || '';
     if (msg.type === 'image') previewText = '📷 Foto';
@@ -292,32 +291,68 @@ function _renderMessage(msg, msgId, msgsContainer) {
     if (txt) txt.focus();
   };
 
-  // Reply button
-  const replyBtn = _el('button', { className: 'ch-msg-reply', innerHTML: '↩️', title: 'Responder' });
-  replyBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    triggerReply();
-  });
-  bubble.appendChild(replyBtn);
+  const replyBtn = _el('button', { className: 'ch-msg-action-btn', innerHTML: '↩️', title: 'Responder' });
+  replyBtn.addEventListener('click', (e) => { e.stopPropagation(); triggerReply(); });
+  actionsMenu.appendChild(replyBtn);
 
-  // Swipe to reply
+  if (isSent && msg.type === 'text') {
+    const timeElapsed = Date.now() - msg.timestamp;
+    if (timeElapsed < 15 * 60 * 1000) { // 15 mins limit
+      const editBtn = _el('button', { className: 'ch-msg-action-btn', innerHTML: '✏️', title: 'Editar' });
+      editBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        _editingMsgId = msgId;
+        const txt = document.querySelector('.ch-input');
+        if (txt) {
+          txt.value = msg.text;
+          txt.focus();
+          txt.style.height = 'auto';
+          txt.style.height = Math.min(txt.scrollHeight, 100) + 'px';
+          if (typeof _updateSendBtn === 'function') _updateSendBtn();
+        }
+      });
+      actionsMenu.appendChild(editBtn);
+    }
+  }
+
+  const delBtn = _el('button', { className: 'ch-msg-action-btn ch-msg-del-btn', innerHTML: ICONS.close, title: 'Eliminar' });
+  delBtn.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    if (confirm('¿Eliminar este mensaje para todos?')) {
+      const { deleteMessage } = await import('./messages.js');
+      deleteMessage(_currentConvId, msgId);
+    }
+  });
+  actionsMenu.appendChild(delBtn);
+
+  bubble.appendChild(actionsMenu);
+
+  // Swipe and Long Press
   let touchStartX = 0;
   let touchStartY = 0;
   let currentX = 0;
-
   let isSwiping = false;
+  let longPressTimer = null;
 
   wrapper.addEventListener('touchstart', (e) => {
     touchStartX = e.touches[0].clientX;
     touchStartY = e.touches[0].clientY;
     isSwiping = false;
     wrapper.style.transition = 'none';
+    
+    longPressTimer = setTimeout(() => {
+      actionsMenu.classList.add('visible');
+    }, 500);
   }, { passive: true });
 
   wrapper.addEventListener('touchmove', (e) => {
     if (touchStartX === 0) return;
     const deltaX = e.touches[0].clientX - touchStartX;
     const deltaY = e.touches[0].clientY - touchStartY;
+
+    if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
+      clearTimeout(longPressTimer);
+    }
 
     if (!isSwiping) {
       if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 5) {
@@ -335,6 +370,7 @@ function _renderMessage(msg, msgId, msgsContainer) {
   }, { passive: true });
 
   wrapper.addEventListener('touchend', () => {
+    clearTimeout(longPressTimer);
     if (!isSwiping && currentX === 0) return;
     wrapper.style.transition = 'transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
     if (currentX > 50) {
@@ -345,6 +381,13 @@ function _renderMessage(msg, msgId, msgsContainer) {
     touchStartX = 0;
     isSwiping = false;
   });
+
+  // Tap anywhere outside to close actions on mobile
+  document.addEventListener('touchstart', (e) => {
+    if (!wrapper.contains(e.target)) {
+      actionsMenu.classList.remove('visible');
+    }
+  }, { passive: true });
 
   wrapper.appendChild(bubble);
 
@@ -911,6 +954,26 @@ export async function initChat(container, user, conversationId, options = {}) {
   async function _send() {
     if (isMuted) return;
     const text = textInput.value.trim();
+
+    if (_editingMsgId) {
+      if (!text) return;
+      try {
+        await update(ref(db, `messages/${conversationId}/${_editingMsgId}`), {
+          text: text,
+          isEdited: true
+        });
+        _editingMsgId = null;
+        textInput.value = '';
+        textInput.style.height = 'auto';
+        const rp = document.querySelector('.ch-reply-preview');
+        if (rp) rp.classList.remove('active');
+        if (typeof _updateSendBtn === 'function') _updateSendBtn();
+      } catch(e) {
+        console.error("Edit error:", e);
+      }
+      return;
+    }
+
     const ttl = getTTLOptions()[_currentTTLIndex].value;
 
     if (_pendingFile) {
@@ -1007,6 +1070,37 @@ export async function initChat(container, user, conversationId, options = {}) {
     }
   });
   _listeners.push({ ref: msgsRef, type: 'child_removed' });
+
+  const changedUnsub = onChildChanged(msgsRef, (snapshot) => {
+    const msg = snapshot.val();
+    const el = msgsContainer.querySelector(`[data-msg-id="${snapshot.key}"]`);
+    if (el && msg) {
+      // Re-render message bubble content
+      const bubble = el.querySelector('.ch-bubble');
+      if (bubble) {
+        if (msg.type === 'text') {
+           const textEl = bubble.querySelector('.ch-msg-text');
+           if (textEl) textEl.textContent = msg.text;
+           
+           if (msg.isEdited) {
+             let editedEl = bubble.querySelector('.ch-msg-edited');
+             if (!editedEl) {
+               editedEl = document.createElement('span');
+               editedEl.className = 'ch-msg-edited';
+               editedEl.textContent = 'Edited ';
+               const timeEl = bubble.querySelector('.ch-msg-time');
+               if (timeEl) {
+                 bubble.insertBefore(editedEl, timeEl);
+               } else {
+                 bubble.appendChild(editedEl);
+               }
+             }
+           }
+        }
+      }
+    }
+  });
+  _listeners.push({ ref: msgsRef, type: 'child_changed' });
 
   // Progress bar updater
   _progressIntervalId = setInterval(() => {
