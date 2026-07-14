@@ -835,34 +835,33 @@ export async function initChat(container, user, conversationId, options = {}) {
   attachWrap.appendChild(attachBtn);
   attachWrap.appendChild(fileInput);
 
-  fileInput.addEventListener('change', async () => {
-    const file = fileInput.files[0];
+  function _handleFileSelection(file, fileType) {
     if (!file) return;
 
-    const validation = validateFile(file, _fileType);
+    const validation = validateFile(file, fileType);
     if (!validation.valid) {
       alert(validation.error);
       fileInput.value = '';
       return;
     }
 
-    _pendingFile = { file, type: _fileType };
+    _pendingFile = { file, type: fileType };
     _viewOnce = false;
     if (typeof _updateSendBtn === 'function') _updateSendBtn();
 
     // Show preview
     previewArea.style.display = 'flex';
-    if (_fileType === 'image') {
+    if (fileType === 'image') {
       const url = URL.createObjectURL(file);
       previewArea.innerHTML = `
         <img class="ch-preview-thumb" src="${url}" alt="">
-        <div class="ch-preview-info"><div class="ch-preview-name">${file.name}</div><div class="ch-preview-size">${formatFileSize(file.size)}</div></div>
+        <div class="ch-preview-info"><div class="ch-preview-name">${file.name || 'Captura.png'}</div><div class="ch-preview-size">${formatFileSize(file.size)}</div></div>
         <label class="ch-preview-viewonce"><input type="checkbox" id="ch-viewonce-cb"> 🔥 Ver una vez</label>
         <button class="ch-preview-close">${ICONS.close}</button>
       `;
     } else {
       previewArea.innerHTML = `
-        <div class="ch-preview-info"><div class="ch-preview-name">${_fileType === 'video' ? '🎥' : '🎤'} ${file.name}</div><div class="ch-preview-size">${formatFileSize(file.size)}</div></div>
+        <div class="ch-preview-info"><div class="ch-preview-name">${fileType === 'video' ? '🎥' : '🎤'} ${file.name}</div><div class="ch-preview-size">${formatFileSize(file.size)}</div></div>
         <label class="ch-preview-viewonce"><input type="checkbox" id="ch-viewonce-cb"> 🔥 Ver una vez</label>
         <button class="ch-preview-close">${ICONS.close}</button>
       `;
@@ -871,6 +870,28 @@ export async function initChat(container, user, conversationId, options = {}) {
     previewArea.querySelector('#ch-viewonce-cb')?.addEventListener('change', (e) => { _viewOnce = e.target.checked; });
     previewArea.querySelector('.ch-preview-close').addEventListener('click', _clearPreview);
     fileInput.value = '';
+  }
+
+  fileInput.addEventListener('change', async () => {
+    _handleFileSelection(fileInput.files[0], _fileType);
+  });
+
+  document.addEventListener('paste', (e) => {
+    const items = (e.clipboardData || window.clipboardData).items;
+    for (let index in items) {
+      const item = items[index];
+      if (item.kind === 'file' && item.type.startsWith('image/')) {
+        e.preventDefault();
+        const file = item.getAsFile();
+        if (file) {
+          // Some browsers return files without a name or with a generic 'image.png'
+          const customFile = new File([file], `Captura_${Date.now()}.png`, { type: file.type });
+          _fileType = 'image';
+          _handleFileSelection(customFile, 'image');
+        }
+        break;
+      }
+    }
   });
 
   function _clearPreview() {
