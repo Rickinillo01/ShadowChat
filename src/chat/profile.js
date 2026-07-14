@@ -167,6 +167,25 @@ export function showProfileModal(container, currentUser, onUpdate) {
         <div class="pf-label">Email</div>
         <input class="pf-input" value="${currentUser.email || ''}" disabled>
       </div>
+
+      <div class="pf-field">
+        <div class="pf-label">Dead Man's Switch (Wipe Out automático)</div>
+        <select class="pf-input" id="pf-deadmanswitch">
+          <option value="0">Desactivado</option>
+          <option value="3">3 días</option>
+          <option value="4">4 días</option>
+          <option value="5">5 días</option>
+          <option value="6">6 días</option>
+          <option value="7">7 días</option>
+          <option value="10">10 días</option>
+          <option value="15">15 días</option>
+          <option value="20">20 días</option>
+          <option value="30">30 días (1 mes)</option>
+          <option value="60">60 días (2 meses)</option>
+          <option value="90">90 días (3 meses)</option>
+        </select>
+        <div style="font-size:0.7rem; color:rgba(255,255,255,0.4); margin-top:4px;">Si no abres la app en este tiempo, se borrará tu cuenta cuando tus contactos entren.</div>
+      </div>
       
       <div class="pf-field">
         <div class="pf-label">Cambiar contraseña (opcional)</div>
@@ -199,13 +218,21 @@ export function showProfileModal(container, currentUser, onUpdate) {
     if (e.target === _overlayEl) hideProfileModal();
   });
 
-  // Themes
+  // Themes and Dead Man's Switch
   const themeDots = modal.querySelectorAll('.pf-theme-dot');
-  get(ref(db, `users/${currentUser.uid}/theme`)).then(snap => {
-    const activeId = snap.exists() ? snap.val() : 0;
-    themeDots.forEach(dot => {
-      dot.classList.toggle('active', parseInt(dot.dataset.id) === activeId);
-    });
+  const deadManInput = modal.querySelector('#pf-deadmanswitch');
+  
+  get(ref(db, `users/${currentUser.uid}`)).then(snap => {
+    if (snap.exists()) {
+      const data = snap.val();
+      const activeId = data.theme !== undefined ? data.theme : 0;
+      themeDots.forEach(dot => {
+        dot.classList.toggle('active', parseInt(dot.dataset.id) === activeId);
+      });
+      if (data.deadManSwitch !== undefined) {
+        deadManInput.value = data.deadManSwitch;
+      }
+    }
   });
 
   themeDots.forEach(dot => {
@@ -281,6 +308,9 @@ export function showProfileModal(container, currentUser, onUpdate) {
         if (newPassword.length < 6) throw new Error('La contraseña debe tener al menos 6 caracteres');
         await updatePassword(currentUser, newPassword);
       }
+
+      const deadManValue = parseInt(deadManInput.value) || 0;
+      await set(ref(db, `users/${currentUser.uid}/deadManSwitch`), deadManValue);
 
       msgArea.innerHTML = `<div class="pf-msg success">Cambios guardados correctamente</div>`;
       setTimeout(() => { msgArea.innerHTML = ''; }, 2000);

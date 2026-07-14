@@ -99,6 +99,8 @@ function _injectStyles() {
     .ch-reply-preview-close:hover { color:#f72585; background:rgba(247,37,133,0.1); }
     
     .ch-input-area { position:relative; z-index:2; background:#0d0d15; border-top:1px solid rgba(255,255,255,0.06); padding:10px 16px; display:flex; flex-direction:column; gap:8px; flex-shrink:0; }
+    .ch-secret-btn { background:none; border:none; color:rgba(255,255,255,0.4); font-size:1.1rem; cursor:pointer; padding:4px; border-radius:50%; transition:all 0.2s; display:flex; align-items:center; justify-content:center; }
+    .ch-secret-btn:hover { background:rgba(255,255,255,0.1); }
     @media(max-width:768px) { .ch-msg { max-width:85%; } }
     @keyframes chMsgIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
     .ch-msg.sent { align-self:flex-end; align-items:flex-end; }
@@ -245,7 +247,54 @@ function _renderMessage(msg, msgId, msgsContainer) {
     bubble.appendChild(_createAudioPlayer(msg.mediaURL));
   } else {
     // Text
-    const textEl = _el('div', { className: 'ch-msg-text', textContent: msg.text });
+    let displayText = msg.text;
+    if (msg.isLocked) {
+      displayText = '██████████';
+    } else if (msg.isDistorted) {
+      displayText = msg.distortedText;
+    }
+
+    const textEl = _el('div', { className: 'ch-msg-text', textContent: displayText });
+    
+    if (msg.isLocked) {
+      textEl.style.cursor = 'pointer';
+      textEl.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        if (textEl.textContent === msg.text) return; // Already unlocked
+        const pin = prompt("Introduce el PIN de 4 dígitos para leer este mensaje:");
+        if (pin && btoa(pin) === msg.pinHash) {
+          textEl.textContent = msg.text;
+          textEl.style.cursor = 'text';
+        } else if (pin) {
+          const failCount = (msg.failedPins || 0) + 1;
+          if (failCount >= 3) {
+            alert("Has fallado el PIN 3 veces. El mensaje se ha autodestruido de forma permanente.");
+            const { deleteMessage } = await import('./messages.js');
+            deleteMessage(_currentConvId, msgId);
+          } else {
+            alert(`PIN incorrecto. Te quedan ${3 - failCount} intentos antes de que el mensaje se autodestruya.`);
+            const { update } = await import('../firebase.js');
+            update(ref(db, `messages/${_currentConvId}/${msgId}`), { failedPins: failCount });
+          }
+        }
+      });
+    }
+
+    if (msg.isDistorted) {
+      textEl.style.cursor = 'pointer';
+      textEl.style.userSelect = 'none';
+      const showReal = () => { textEl.textContent = msg.text; };
+      const showFake = () => { textEl.textContent = msg.distortedText; };
+      
+      textEl.addEventListener('mousedown', showReal);
+      textEl.addEventListener('mouseup', showFake);
+      textEl.addEventListener('mouseleave', showFake);
+      
+      textEl.addEventListener('touchstart', showReal, { passive: true });
+      textEl.addEventListener('touchend', showFake);
+      textEl.addEventListener('touchcancel', showFake);
+    }
+    
     bubble.appendChild(textEl);
   }
 
@@ -918,8 +967,27 @@ export async function initChat(container, user, conversationId, options = {}) {
     }
   });
 
+  // Secret Features State
+  let _isLocked = false;
+  let _isDistorted = false;
+
+  const lockBtn = _el('button', { className: 'ch-secret-btn', innerHTML: '🔓' });
+  lockBtn.addEventListener('click', () => {
+    _isLocked = !_isLocked;
+    lockBtn.innerHTML = _isLocked ? '🔒' : '🔓';
+    lockBtn.style.color = _isLocked ? '#f72585' : '';
+  });
+
+  const maskBtn = _el('button', { className: 'ch-secret-btn', innerHTML: '🎭' });
+  maskBtn.addEventListener('click', () => {
+    _isDistorted = !_isDistorted;
+    maskBtn.style.color = _isDistorted ? '#00f5d4' : '';
+  });
+
   inputRow.appendChild(ttlBtn);
   inputRow.appendChild(attachWrap);
+  inputRow.appendChild(maskBtn);
+  inputRow.appendChild(lockBtn);
   inputRow.appendChild(textInput);
   inputRow.appendChild(sendBtn);
 
@@ -954,6 +1022,22 @@ export async function initChat(container, user, conversationId, options = {}) {
   async function _send() {
     if (isMuted) return;
     const text = textInput.value.trim();
+
+    let pinHash = null;
+    if (_isLocked && text) {
+      const pin = prompt("Introduce un PIN de 4 dígitos para bloquear este mensaje:");
+      if (!pin || pin.length < 4) {
+        alert("PIN inválido. El mensaje no se enviará.");
+        return;
+      }
+      pinHash = btoa(pin); // Simple encode for covert ops
+    }
+
+    let distText = null;
+    if (_isDistorted && text) {
+      const phrases = ["Ayer compré pan", "¿Viste el partido?", "Qué buen tiempo hace", "Tengo que ir al súper", "Luego te llamo", "Se me ha hecho tarde"];
+      distText = phrases[Math.floor(Math.random() * phrases.length)];
+    }
 
     if (_editingMsgId) {
       if (!text) return;
@@ -999,7 +1083,11 @@ export async function initChat(container, user, conversationId, options = {}) {
           mediaPath: result.path,
           mediaThumbnail: thumbnail,
           viewOnce: _viewOnce,
-          replyTo: _replyingTo
+          replyTo: _replyingTo,
+          isLocked: _isLocked,
+          pinHash: pinHash,
+          isDistorted: _isDistorted,
+          distortedText: distText
         });
       } catch (error) {
         console.error('[Chat] Upload error:', error);
@@ -1009,12 +1097,24 @@ export async function initChat(container, user, conversationId, options = {}) {
       uploadBarEl.style.display = 'none';
       _clearPreview();
     } else if (text) {
-      await sendMessage(conversationId, text, user, ttl, { replyTo: _replyingTo });
+      await sendMessage(conversationId, text, user, ttl, { 
+        replyTo: _replyingTo,
+        isLocked: _isLocked,
+        pinHash: pinHash,
+        isDistorted: _isDistorted,
+        distortedText: distText
+      });
     } else {
       return; // Nothing to send
     }
 
     _replyingTo = null;
+    _isLocked = false;
+    _isDistorted = false;
+    lockBtn.innerHTML = '🔓';
+    lockBtn.style.color = '';
+    maskBtn.style.color = '';
+    
     replyPreview.classList.remove('active');
     textInput.value = '';
     textInput.style.height = 'auto';

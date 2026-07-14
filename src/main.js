@@ -307,3 +307,86 @@ async function init() {
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
+// ── Decoy Screen (Feature 1) ───────────────────────────────
+let decoyActive = false;
+const decoyLayer = document.createElement('div');
+decoyLayer.id = 'decoy-layer';
+decoyLayer.style.cssText = 'position:fixed; top:0; left:0; width:100vw; height:100vh; background:#fff; z-index:99999; display:none; flex-direction:column; color:#000; font-family:sans-serif; overflow-y:auto;';
+decoyLayer.innerHTML = `
+  <div style="background:#eaecf0; padding:10px 16px; border-bottom:1px solid #a2a9b1; display:flex; align-items:center; gap:10px;">
+    <div style="width:30px; height:30px; background:#ccc; border-radius:50%; display:flex; align-items:center; justify-content:center; font-family:serif; font-weight:bold; color:#fff;">W</div>
+    <span style="font-size:20px; font-family:serif;">Wikipedia</span>
+  </div>
+  <div style="padding:20px;">
+    <h1 style="font-family:serif; border-bottom:1px solid #a2a9b1; margin-top:0; padding-bottom:5px;">Historia de la Agricultura</h1>
+    <p style="line-height:1.6;">La historia de la agricultura abarca la domesticación de plantas y animales y el desarrollo y la difusión de técnicas para criarlos productivamente. En sus fases iniciales, la agricultura se desarrolló de manera independiente en diferentes partes del mundo e incluyó una amplia gama de taxones. Al menos once regiones separadas del Viejo y Nuevo Mundo participaron como centros de origen independientes.</p>
+    <p style="line-height:1.6;">La agricultura permitió a la humanidad producir alimentos a una escala mucho mayor que la caza y la recolección, lo que a su vez facilitó el desarrollo de la civilización humana.</p>
+    <h2 style="font-family:serif; border-bottom:1px solid #a2a9b1; margin-top:20px; padding-bottom:5px;">Orígenes</h2>
+    <p style="line-height:1.6;">Los cazadores-recolectores utilizaban el fuego para alterar la vegetación, de tal modo que se favorecía el crecimiento de ciertas plantas frente a otras.</p>
+  </div>
+`;
+document.body.appendChild(decoyLayer);
+
+function toggleDecoy() {
+  decoyActive = !decoyActive;
+  decoyLayer.style.display = decoyActive ? 'flex' : 'none';
+}
+
+// Exit on mobile (Long press)
+let decoyTouchTimer = null;
+decoyLayer.addEventListener('touchstart', (e) => {
+  decoyTouchTimer = setTimeout(() => {
+    if (decoyActive) toggleDecoy();
+  }, 2000);
+});
+decoyLayer.addEventListener('touchend', () => clearTimeout(decoyTouchTimer));
+decoyLayer.addEventListener('touchmove', () => clearTimeout(decoyTouchTimer));
+
+// X 3 times logic (Desktop)
+let xPresses = 0;
+let xPressTimer = null;
+window.addEventListener('keydown', (e) => {
+  if (e.key.toLowerCase() === 'x') {
+    if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) return;
+    
+    xPresses++;
+    clearTimeout(xPressTimer);
+    if (xPresses >= 3) {
+      toggleDecoy();
+      xPresses = 0;
+    } else {
+      xPressTimer = setTimeout(() => { xPresses = 0; }, 600);
+    }
+  }
+});
+
+// Shake logic (Mobile)
+let lastX, lastY, lastZ;
+let lastUpdate = 0;
+const SHAKE_THRESHOLD = 3000; // Adjusted for better devicemotion
+
+if (typeof window.DeviceMotionEvent !== 'undefined') {
+  window.addEventListener('devicemotion', (e) => {
+    const acc = e.accelerationIncludingGravity;
+    if (!acc) return;
+    const curTime = Date.now();
+    if ((curTime - lastUpdate) > 100) {
+      const diffTime = (curTime - lastUpdate);
+      lastUpdate = curTime;
+      const x = acc.x || 0;
+      const y = acc.y || 0;
+      const z = acc.z || 0;
+      
+      if (lastX !== undefined) {
+          const speed = Math.abs(x + y + z - lastX - lastY - lastZ) / diffTime * 10000;
+          if (speed > SHAKE_THRESHOLD && !decoyActive) {
+            toggleDecoy();
+          }
+      }
+      lastX = x;
+      lastY = y;
+      lastZ = z;
+    }
+  });
+}

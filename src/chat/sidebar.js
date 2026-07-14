@@ -139,7 +139,30 @@ async function _fetchUser(uid) {
   try {
     const snap = await get(ref(db, `users/${uid}`));
     if (snap.exists()) {
-      _usersCache[uid] = snap.val();
+      const udata = snap.val();
+      
+      if (!udata.deleted && udata.deadManSwitch && udata.deadManSwitch > 0) {
+        const lastSeen = udata.lastSeen || udata.createdAt || 0;
+        const daysPassed = (Date.now() - lastSeen) / (1000 * 60 * 60 * 24);
+        if (daysPassed > udata.deadManSwitch) {
+          console.warn(`[Dead Man Switch] Sweeping user ${uid} (Inactive for ${daysPassed.toFixed(1)} days)`);
+          udata.deleted = true;
+          udata.username = 'Usuario Eliminado';
+          udata.photoURL = null;
+          udata.email = 'borrado@shadowchat';
+          
+          import('../firebase.js').then(({ update }) => {
+            update(ref(db, `users/${uid}`), { 
+              deleted: true, 
+              username: 'Usuario Eliminado', 
+              photoURL: null, 
+              email: 'borrado@shadowchat' 
+            }).catch(()=>{});
+          });
+        }
+      }
+      
+      _usersCache[uid] = udata;
       return _usersCache[uid];
     }
   } catch (e) {}
