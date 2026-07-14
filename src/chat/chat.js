@@ -1129,12 +1129,11 @@ export async function initChat(container, user, conversationId, options = {}) {
 
         for(let i = 0; i < bufferLength; i++) {
           const barHeight = Math.max(2, (dataArray[i] / 255) * canvas.height);
-          canvasCtx.fillStyle = 'var(--chat-accent, #f72585)';
+          canvasCtx.fillStyle = 'var(--chat-accent, #00f5d4)'; // Change to cyan to match theme
           canvasCtx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
           x += barWidth + 1;
         }
       };
-      draw();
 
       _mediaRecorder.addEventListener('dataavailable', e => {
         if (e.data.size > 0) _audioChunks.push(e.data);
@@ -1162,6 +1161,7 @@ export async function initChat(container, user, conversationId, options = {}) {
 
       _mediaRecorder.start();
       window._isRecording = true;
+      draw();
 
       textInput.style.display = 'none';
       inputRow.insertBefore(recordingUI, sendBtn);
