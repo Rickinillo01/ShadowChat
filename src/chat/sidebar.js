@@ -29,7 +29,7 @@ function _injectStyles() {
     .sb-header {
       display: flex; align-items: center; gap: 12px;
       padding: 16px; border-bottom: 1px solid rgba(255,255,255,0.06);
-      background: #0d0d15;
+      background: var(--chat-surface, #0d0d15);
     }
     .sb-avatar {
       width: 38px; height: 38px; border-radius: 50%; object-fit: cover;
@@ -94,8 +94,8 @@ function _injectStyles() {
     }
     .sb-item:hover { background: rgba(255,255,255,0.03); }
     .sb-item.active {
-      background: rgba(0,245,212,0.05);
-      border-left-color: #00f5d4;
+      background: var(--chat-surface-2, rgba(255,255,255,0.05));
+      border-left-color: var(--chat-accent, #00f5d4);
     }
     .sb-item-avatar {
       width: 44px; height: 44px; border-radius: 50%; object-fit: cover; flex-shrink: 0;

@@ -17,13 +17,13 @@ function _injectStyles() {
       height: 100vh;
       height: 100dvh;
       overflow: hidden;
-      background: #0a0a0f;
+      background: var(--chat-bg, #0a0a0f);
       position: relative;
     }
     .sc-sidebar {
       width: 380px;
       flex-shrink: 0;
-      background: #0d0d15;
+      background: var(--chat-surface, #0d0d15);
       border-right: 1px solid rgba(255,255,255,0.06);
       display: flex;
       flex-direction: column;
@@ -34,7 +34,7 @@ function _injectStyles() {
       flex: 1;
       display: flex;
       flex-direction: column;
-      background: #0a0a0f;
+      background: var(--chat-bg, #0a0a0f);
       position: relative;
       overflow: hidden;
       transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
