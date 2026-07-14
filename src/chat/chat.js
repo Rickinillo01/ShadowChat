@@ -287,8 +287,8 @@ function _renderMessage(msg, msgId, msgsContainer) {
       const showReal = () => { textEl.textContent = msg.text; };
       const showFake = () => { textEl.textContent = msg.distortedText; };
       
-      textEl.addEventListener('mouseenter', showReal);
-      textEl.addEventListener('mouseleave', showFake);
+      bubble.addEventListener('mouseenter', showReal);
+      bubble.addEventListener('mouseleave', showFake);
       
       textEl.addEventListener('touchstart', showReal, { passive: true });
       textEl.addEventListener('touchend', showFake);
