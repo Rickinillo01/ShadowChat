@@ -86,8 +86,8 @@ function _injectStyles() {
     .ch-msg-del-btn { color:#f72585; }
     .ch-msg-del-btn:hover { background:rgba(247,37,133,0.1); }
     
-    .ch-quoted-msg { background:rgba(0,0,0,0.2); border-left:3px solid #00f5d4; padding:6px 10px; border-radius:6px; margin-bottom:6px; cursor:pointer; font-size:0.8rem; overflow:hidden; }
-    .ch-quoted-msg .q-sender { color:#00f5d4; font-weight:600; margin-bottom:2px; font-size:0.75rem; }
+    .ch-quoted-msg { background:rgba(0,0,0,0.2); border-left:3px solid #00f5d4; padding:6px 10px; border-radius:6px; margin-bottom:6px; cursor:pointer; font-size:0.8rem; overflow:hidden; max-width:100%; box-sizing:border-box; }
+    .ch-quoted-msg .q-sender { color:#00f5d4; font-weight:600; margin-bottom:2px; font-size:0.75rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .ch-quoted-msg .q-text { color:rgba(255,255,255,0.7); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     
     .ch-reply-preview { position:absolute; bottom:100%; left:0; right:0; background:#16162a; border-top:1px solid rgba(255,255,255,0.06); padding:8px 16px; display:none; align-items:center; gap:10px; z-index:0; }
@@ -104,7 +104,7 @@ function _injectStyles() {
     .ch-msg.sent { align-self:flex-end; align-items:flex-end; }
     .ch-msg.received { align-self:flex-start; align-items:flex-start; }
     .ch-msg-sender { font-size:0.7rem; color:rgba(0,245,212,0.6); margin-bottom:2px; padding-left:4px; font-weight:500; }
-    .ch-bubble { padding:8px 12px; border-radius:14px; position:relative; word-wrap:break-word; }
+    .ch-bubble { padding:8px 12px; border-radius:14px; position:relative; word-wrap:break-word; max-width:100%; box-sizing:border-box; min-width:0; }
     .ch-msg.sent .ch-bubble { background:var(--ch-sent-bg, linear-gradient(135deg,rgba(0,245,212,0.12),rgba(0,212,170,0.08))); border:var(--ch-sent-border, 1px solid rgba(0,245,212,0.1)); border-bottom-right-radius:4px; transition:all 0.3s; }
     .ch-msg.received .ch-bubble { background:var(--ch-recv-bg, rgba(255,255,255,0.04)); border:var(--ch-recv-border, 1px solid rgba(255,255,255,0.06)); border-bottom-left-radius:4px; transition:all 0.3s; }
     .ch-msg-text { font-size:0.88rem; line-height:1.4; white-space:pre-wrap; }
