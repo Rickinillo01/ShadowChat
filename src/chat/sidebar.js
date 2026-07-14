@@ -241,11 +241,11 @@ async function _renderList(listEl) {
     if (conv.isTemp) {
       if (conv.expiresAt && Date.now() > conv.expiresAt) {
         // Cleanup expired temporary conversation
-        set(ref(db, \`conversations/\${id}\`), null).catch(()=>{});
-        set(ref(db, \`messages/\${id}\`), null).catch(()=>{});
+        set(ref(db, `conversations/${id}`), null).catch(()=>{});
+        set(ref(db, `messages/${id}`), null).catch(()=>{});
         continue;
       }
-      name = \`⏳ \${name}\`;
+      name = `⏳ ${name}`;
     }
     
     if (_searchTerm && !name.toLowerCase().includes(_searchTerm.toLowerCase())) continue;
