@@ -130,15 +130,15 @@ function _injectStyles() {
     .ch-secret-btn { background:none; border:none; color:rgba(255,255,255,0.4); font-size:1.1rem; cursor:pointer; padding:4px; border-radius:50%; transition:all 0.2s; display:flex; align-items:center; justify-content:center; }
     .ch-secret-btn:hover { background:rgba(255,255,255,0.1); }
     
-    .ch-drawer-wrap { position:relative; display:flex; align-items:center; }
-    .ch-drawer-btn { display:none; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08); color:rgba(255,255,255,0.6); border-radius:8px; width:32px; height:32px; align-items:center; justify-content:center; cursor:pointer; transition:all 0.2s; }
+    .ch-drawer-wrap { position:relative; display:flex; align-items:center; flex-shrink:0; }
+    .ch-drawer-btn { display:none; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08); color:rgba(255,255,255,0.6); border-radius:8px; width:32px; height:32px; align-items:center; justify-content:center; cursor:pointer; transition:all 0.2s; flex-shrink:0; }
     .ch-drawer-content { display:flex; gap:4px; align-items:center; }
     
     @media(max-width:768px) { 
       .ch-msg { max-width:85%; } 
       .ch-drawer-btn { display:flex; }
-      .ch-drawer-content { position:absolute; bottom:100%; left:50%; transform:translateX(-50%) translateY(10px); background:var(--chat-surface-2, #16162a); border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:6px; box-shadow:0 -4px 20px rgba(0,0,0,0.3); opacity:0; pointer-events:none; transition:all 0.2s ease; flex-direction:row; margin-bottom:8px; }
-      .ch-drawer-wrap.open .ch-drawer-content { opacity:1; pointer-events:auto; transform:translateX(-50%) translateY(0); }
+      .ch-drawer-content { position:absolute; bottom:100%; left:0; transform:translateY(10px); background:var(--chat-surface-2, #16162a); border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:6px; box-shadow:0 -4px 20px rgba(0,0,0,0.3); opacity:0; pointer-events:none; transition:all 0.2s ease; flex-direction:row; margin-bottom:8px; z-index:100; }
+      .ch-drawer-wrap.open .ch-drawer-content { opacity:1; pointer-events:auto; transform:translateY(0); }
     }
     @keyframes chMsgIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
     .ch-msg.sent { align-self:flex-end; align-items:flex-end; }
