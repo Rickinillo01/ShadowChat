@@ -2,7 +2,7 @@
 // sidebar.js — Conversation list + user header (ShadowChat 2.0)
 // =============================================================================
 
-import { db, auth, ref, onValue, off, get } from '../firebase.js';
+import { db, auth, ref, onValue, off, get, set } from '../firebase.js';
 import { formatTimestamp } from './messages.js';
 import { showAdminModal } from '../moderation/modPanel.js';
 
@@ -271,8 +271,32 @@ export function initSidebar(sidebarEl, currentUser, callbacks) {
     ${avatarHtml}
     <div class="sb-username">${currentUser.displayName || 'Usuario'}</div>
     ${adminBtnHtml}
+    <button class="sb-panic-btn" title="Invitar Anónimo (1h)" id="sb-invite-btn" style="color:#00f5d4; margin-right:4px;">⏳</button>
     <button class="sb-panic-btn" title="Pánico">${ICON_BOLT}</button>
   `;
+
+  const inviteBtn = header.querySelector('#sb-invite-btn');
+  if (inviteBtn) {
+    inviteBtn.addEventListener('click', async () => {
+      try {
+        const inviteId = "inv_" + Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+        const expiresAt = Date.now() + 60 * 60 * 1000; // 1 hour
+        
+        await set(ref(db, `conversations/${inviteId}`), {
+          type: 'private',
+          members: { [currentUser.uid]: true },
+          expiresAt: expiresAt,
+          createdAt: Date.now()
+        });
+
+        const inviteUrl = window.location.origin + window.location.pathname + "?invite=" + inviteId;
+        await navigator.clipboard.writeText(inviteUrl);
+        alert("Enlace copiado. Compártelo para iniciar un chat anónimo de 60 minutos:\n\n" + inviteUrl);
+      } catch (err) {
+        alert("Error al generar enlace: " + err.message);
+      }
+    });
+  }
 
   header.querySelector('#sb-user-avatar').addEventListener('click', () => {
     if (callbacks.onProfile) callbacks.onProfile();

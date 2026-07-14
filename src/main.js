@@ -64,7 +64,7 @@ function transitionToChatLayer() {
 }
 
 // ── Initialize Chat UI (WhatsApp layout) ───────────────────
-async function initChatUI(user) {
+async function initChatUI(user, hideSidebar = false) {
     state.currentUser = user;
 
     const [layout, sidebar, chat] = await Promise.all([
@@ -86,6 +86,12 @@ async function initChatUI(user) {
     chatView.style.height = '100vh';
     chatView.style.height = '100dvh';
     state.layout = layout.initLayout(chatView);
+
+    if (hideSidebar) {
+        state.layout.sidebarEl.style.display = 'none';
+        state.layout.mainEl.style.width = '100%';
+        state.layout.mainEl.style.flex = '1';
+    }
 
     // Set up sidebar
     sidebar.initSidebar(state.layout.sidebarEl, user, {
@@ -223,10 +229,71 @@ async function init() {
             authMod.checkExistingAuth(async (user) => {
                 transitionToChatLayer();
 
+                // Check for ?invite=XYZ
+                const urlParams = new URLSearchParams(window.location.search);
+                const inviteId = urlParams.get('invite');
+
+                if (inviteId && !user) {
+                    authView.classList.add('hidden');
+                    chatView.classList.remove('hidden');
+                    try {
+                        const { getAuth, signInAnonymously, updateProfile } = await import('https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js');
+                        const auth = getAuth();
+                        const userCred = await signInAnonymously(auth);
+                        user = userCred.user;
+                        
+                        if (!user.displayName) {
+                            const randomId = Math.floor(Math.random() * 9000) + 1000;
+                            await updateProfile(user, {
+                                displayName: "Invitado_" + randomId,
+                                photoURL: "https://ui-avatars.com/api/?name=I&background=random"
+                            });
+                        }
+                        
+                        const { ref, set, db } = await import('./firebase.js');
+                        
+                        // Register anonymous user in DB
+                        await set(ref(db, `users/${user.uid}`), {
+                            username: user.displayName || "Invitado",
+                            photoURL: user.photoURL || "",
+                            email: "anon@shadowchat.app",
+                            online: true,
+                            lastSeen: Date.now()
+                        });
+                        
+                        // Add to conversation
+                        await set(ref(db, `conversations/${inviteId}/members/${user.uid}`), true);
+                        
+                        state.currentUser = user;
+                        await initChatUI(user, true); // We'll add a flag to hide sidebar
+                        openConversation(inviteId);
+                        return;
+                    } catch (e) {
+                        alert("Error al entrar como invitado. Asegúrate de que el administrador habilitó 'Anónimo' en Firebase.\n\n" + e.message);
+                        window.location.href = window.location.pathname; // strip invite
+                        return;
+                    }
+                }
+
                 if (user) {
                     authView.classList.add('hidden');
                     chatView.classList.remove('hidden');
-                    await initChatUI(user);
+                    
+                    if (inviteId) {
+                        try {
+                            const { ref, set, db } = await import('./firebase.js');
+                            await set(ref(db, `conversations/${inviteId}/members/${user.uid}`), true);
+                            await initChatUI(user);
+                            openConversation(inviteId);
+                            // Clear URL without reload
+                            window.history.replaceState({}, document.title, window.location.pathname);
+                        } catch(e) {
+                            console.error(e);
+                            await initChatUI(user);
+                        }
+                    } else {
+                        await initChatUI(user);
+                    }
                 } else {
                     authView.classList.remove('hidden');
                     chatView.classList.add('hidden');

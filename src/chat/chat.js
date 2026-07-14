@@ -19,6 +19,7 @@ import {
 let _listeners = [];
 let _cleanupIntervalId = null;
 let _progressIntervalId = null;
+let _expiryIntervalId = null;
 let _currentUser = null;
 let _currentConvId = null;
 let _currentTTLIndex = 0;
@@ -589,6 +590,35 @@ export async function initChat(container, user, conversationId, options = {}) {
         }
         badge.textContent = '';
       }
+      if (conv.expiresAt) {
+          const banner = _el('div', { 
+             className: 'ch-expiry-banner', 
+             style: 'background:#ff3366; color:#fff; padding:8px; text-align:center; font-weight:bold; font-size:0.9rem; z-index:100; position:relative;' 
+          });
+          wrap.appendChild(banner);
+
+          const checkExpiry = () => {
+              const remaining = Math.max(0, conv.expiresAt - Date.now());
+              if (remaining === 0) {
+                  clearInterval(_expiryIntervalId);
+                  banner.textContent = 'Este chat ha expirado. Autodestruyendo...';
+                  setTimeout(async () => {
+                      try {
+                          const { deleteConversation } = await import('./messages.js');
+                          await deleteConversation(conversationId);
+                      } catch(e) {}
+                      if (_backHandler) _backHandler();
+                      setTimeout(() => { window.location.href = window.location.pathname; }, 1000);
+                  }, 1000);
+              } else {
+                  const mins = Math.ceil(remaining / 60000);
+                  banner.textContent = `⚠️ ESTE CHAT ES ANÓNIMO Y SE DESTRUIRÁ EN ${mins} MINUTO${mins !== 1 ? 'S' : ''}`;
+              }
+          };
+          checkExpiry();
+          if (_expiryIntervalId) clearInterval(_expiryIntervalId);
+          _expiryIntervalId = setInterval(checkExpiry, 10000); // Check every 10s
+      }
     } else {
       convName.textContent = 'Conversación no encontrada';
     }
@@ -1008,6 +1038,9 @@ export function destroyChat() {
   _listeners.forEach(l => { try { off(l.ref, l.type); } catch (e) {} });
   _listeners = [];
   if (_cleanupIntervalId) { stopCleanupInterval(_cleanupIntervalId); _cleanupIntervalId = null; }
+  if (_progressIntervalId) { clearInterval(_progressIntervalId); _progressIntervalId = null; }
+  if (_expiryIntervalId) { clearInterval(_expiryIntervalId); _expiryIntervalId = null; }
+  _currentConvId = null;
   if (_progressIntervalId) { clearInterval(_progressIntervalId); _progressIntervalId = null; }
   _currentConvId = null;
   _pendingFile = null;
