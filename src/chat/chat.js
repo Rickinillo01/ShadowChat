@@ -830,23 +830,13 @@ export async function initChat(container, user, conversationId, options = {}) {
     }
   }
 
-  // Use mousedown and touchstart instead of click. 
-  // preventDefault() keeps the keyboard open, but it also kills the click event, so we execute the logic here.
-  let lastTrigger = 0;
-  const handleSendTrigger = (e) => {
-    if (e.cancelable) e.preventDefault();
-    const now = Date.now();
-    if (now - lastTrigger < 300) return; // Evita el doble disparo de touchstart seguido de mousedown
-    lastTrigger = now;
-
+  sendBtn.addEventListener('click', () => {
     if (window._isRecording || (!textInput.value.trim() && !_pendingFile)) {
       _toggleRecording();
     } else {
       _send();
     }
-  };
-  sendBtn.addEventListener('mousedown', handleSendTrigger);
-  sendBtn.addEventListener('touchstart', handleSendTrigger, { passive: false });
+  });
 
   inputRow.appendChild(ttlBtn);
   inputRow.appendChild(attachWrap);
