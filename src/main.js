@@ -115,8 +115,8 @@ async function initChatUI(user, hideSidebar = false) {
 
     if (hideSidebar) {
         state.layout.sidebarEl.style.display = 'none';
-        state.layout.mainEl.style.width = '100%';
-        state.layout.mainEl.style.flex = '1';
+        state.layout.chatAreaEl.style.width = '100%';
+        state.layout.chatAreaEl.style.flex = '1';
     }
 
     // Set up sidebar
