@@ -200,10 +200,12 @@ function _injectStyles() {
     .ch-upload-bar { height:3px; background:rgba(0,245,212,0.1); border-radius:2px; margin:6px 16px 0; overflow:hidden; }
     .ch-upload-bar-fill { height:100%; background:#00f5d4; border-radius:2px; width:0; transition:width 0.3s; }
 
-    .ch-lightbox { position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,0.9); display:flex; align-items:center; justify-content:center; animation:chMsgIn 0.2s ease; cursor:pointer; }
-    .ch-lightbox img, .ch-lightbox video { max-width:90vw; max-height:90vh; object-fit:contain; border-radius:8px; }
-    .ch-lightbox-close { position:absolute; top:16px; right:16px; background:rgba(255,255,255,0.1); border:none; color:#fff; width:40px; height:40px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:1.2rem; transition:background 0.2s; z-index:1001; }
-    .ch-lightbox-close:hover { background:rgba(255,255,255,0.2); }
+    .ch-lightbox { position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,0.85); backdrop-filter:blur(8px); display:flex; align-items:center; justify-content:center; animation:chFadeIn 0.2s ease; cursor:zoom-out; }
+    @keyframes chFadeIn { from { opacity:0; } to { opacity:1; } }
+    @keyframes chScaleUp { from { transform:scale(0.9); opacity:0; } to { transform:scale(1); opacity:1; } }
+    .ch-lightbox img, .ch-lightbox video { max-width:95vw; max-height:95vh; object-fit:contain; border-radius:8px; animation:chScaleUp 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94); box-shadow:0 10px 40px rgba(0,0,0,0.5); }
+    .ch-lightbox-close { position:absolute; top:20px; right:20px; background:rgba(255,255,255,0.1); border:none; color:#fff; width:44px; height:44px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:1.4rem; transition:all 0.2s; z-index:1001; }
+    .ch-lightbox-close:hover { background:rgba(255,255,255,0.2); transform:scale(1.1); }
 
     .ch-ttl-dropdown { position:absolute; top:100%; right:0; background:#16162a; border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:4px; margin-top:4px; display:none; z-index:10; box-shadow:0 4px 20px rgba(0,0,0,0.3); }
     .ch-ttl-dropdown.open { display:block; animation:chMsgIn 0.15s ease; }
