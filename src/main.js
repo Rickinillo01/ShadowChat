@@ -3,6 +3,18 @@ const chatLayer = document.getElementById('chat-layer');
 const authView = document.getElementById('auth-view');
 const chatView = document.getElementById('chat-view');
 
+// ── OneSignal Init ─────────────────────────────────────────
+window.OneSignalDeferred = window.OneSignalDeferred || [];
+OneSignalDeferred.push(async function(OneSignal) {
+  await OneSignal.init({
+    appId: "17d0128f-85bd-46e9-b575-e5cb865752a3",
+    safari_web_id: "web.onesignal.auto.40785b5b-169b-4884-a5e0-8aeabe17c634",
+    notifyButton: {
+      enable: true,
+    },
+  });
+});
+
 // ── App State ──────────────────────────────────────────────
 const state = {
     currentLayer: 'intro',
@@ -66,6 +78,13 @@ function transitionToChatLayer() {
 // ── Initialize Chat UI (WhatsApp layout) ───────────────────
 async function initChatUI(user, hideSidebar = false) {
     state.currentUser = user;
+
+    // Bind OneSignal to Firebase UID
+    if (window.OneSignalDeferred) {
+        window.OneSignalDeferred.push(function(OneSignal) {
+            OneSignal.login(user.uid);
+        });
+    }
 
     const [layout, sidebar, chat] = await Promise.all([
         loadLayoutModule(), loadSidebarModule(), loadChatModule()
