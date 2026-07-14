@@ -201,6 +201,35 @@ async function initChatUI(user, hideSidebar = false) {
     }
 }
 
+// ── Hardware Back Button Handling ──────────────────────────
+document.addEventListener('backbutton', (e) => {
+    e.preventDefault();
+
+    // 1. Close Modals
+    const modals = document.querySelectorAll('.nc-overlay, .pf-overlay, .sc-tutorial-overlay');
+    if (modals.length > 0) {
+        const lastModal = modals[modals.length - 1];
+        lastModal.click(); // Most modals close on overlay click
+        if (lastModal.parentNode) lastModal.remove(); // Force remove if click didn't work
+        return;
+    }
+
+    // 2. Close Chat and return to Sidebar
+    if (state.currentLayer === 'chat' && state.currentConvId) {
+        const backBtn = document.querySelector('.ch-back');
+        // Only click if the back button is visible in the UI (mobile mode)
+        if (backBtn && backBtn.offsetParent !== null) {
+            backBtn.click();
+            return;
+        }
+    }
+
+    // 3. Exit App
+    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
+        window.Capacitor.Plugins.App.exitApp();
+    }
+});
+
 // ── Open a conversation ────────────────────────────────────
 async function openConversation(convId) {
     const chat = await loadChatModule();
