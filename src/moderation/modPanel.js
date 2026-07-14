@@ -211,6 +211,11 @@ async function _loadUsers(bodyEl, currentUser) {
               btn.classList.toggle('active');
               _updateStatus(targetUid, isBanned ? '<span style="color:#fb5607">Baneado</span>' : '<span style="color:#00f5d4">Activo</span>');
             }
+            else if (action === 'toggleRead') {
+              const isBlocked = !btn.classList.contains('active'); // active means they are blocked
+              await update(ref(db, `users/${targetUid}`), { canSeeReadReceipts: !isBlocked });
+              btn.classList.toggle('active');
+            }
             else if (action === 'delete') {
               if (confirm(`¿ELIMINAR directamente el registro de ${udata.username}? Esta acción es irreversible.`)) {
                 // Set as deleted, effectively blocking them
