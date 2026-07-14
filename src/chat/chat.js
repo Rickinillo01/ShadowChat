@@ -74,7 +74,7 @@ function _injectStyles() {
     .ch-empty { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; color:rgba(255,255,255,0.2); }
     .ch-empty p { margin:0; font-size:0.88rem; }
 
-    .ch-msg { display:flex; flex-direction:column; max-width:65%; animation:chMsgIn 0.25s ease; position:relative; }
+    .ch-msg { display:flex; flex-direction:column; max-width:65%; animation:chMsgIn 0.25s ease; position:relative; touch-action: pan-y; }
     .ch-msg-del, .ch-msg-reply { position:absolute; top:-6px; width:22px; height:22px; border-radius:50%; background:#16162a; border:1px solid rgba(255,255,255,0.1); opacity:0; pointer-events:none; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.2s; z-index:10; box-shadow:0 2px 5px rgba(0,0,0,0.3); padding:0; }
     .ch-msg-del { right:-6px; color:#f72585; border-color:rgba(247,37,133,0.3); }
     .ch-msg-reply { right: 20px; color:#00f5d4; border-color:rgba(0,245,212,0.3); }
@@ -304,9 +304,12 @@ function _renderMessage(msg, msgId, msgsContainer) {
   let touchStartY = 0;
   let currentX = 0;
 
+  let isSwiping = false;
+
   wrapper.addEventListener('touchstart', (e) => {
     touchStartX = e.touches[0].clientX;
     touchStartY = e.touches[0].clientY;
+    isSwiping = false;
     wrapper.style.transition = 'none';
   }, { passive: true });
 
@@ -315,16 +318,23 @@ function _renderMessage(msg, msgId, msgsContainer) {
     const deltaX = e.touches[0].clientX - touchStartX;
     const deltaY = e.touches[0].clientY - touchStartY;
 
-    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) {
-      if (deltaX > 0 && deltaX < 80) {
-        currentX = deltaX;
-        wrapper.style.transform = `translateX(${currentX}px)`;
-        if (e.cancelable) e.preventDefault();
+    if (!isSwiping) {
+      if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 5) {
+        isSwiping = true;
+      } else if (Math.abs(deltaY) > 5) {
+        touchStartX = 0; // Cancel horizontal swipe if scrolling vertically
+        return;
       }
     }
-  }, { passive: false });
+
+    if (isSwiping && deltaX > 0 && deltaX < 80) {
+      currentX = deltaX;
+      wrapper.style.transform = `translateX(${currentX}px)`;
+    }
+  }, { passive: true });
 
   wrapper.addEventListener('touchend', () => {
+    if (!isSwiping && currentX === 0) return;
     wrapper.style.transition = 'transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
     if (currentX > 50) {
       triggerReply();
@@ -332,6 +342,7 @@ function _renderMessage(msg, msgId, msgsContainer) {
     currentX = 0;
     wrapper.style.transform = 'translateX(0)';
     touchStartX = 0;
+    isSwiping = false;
   });
 
   wrapper.appendChild(bubble);
