@@ -647,8 +647,10 @@ export async function initChat(container, user, conversationId, options = {}) {
   const convName = _el('div', { className: 'ch-conv-name', textContent: 'Cargando...' });
   const editNameBtn = _el('button', { className: 'ch-edit-name', innerHTML: '✏️', title: 'Cambiar nombre local' });
   editNameBtn.style.display = 'none';
+  const typingIndicator = _el('div', { className: 'ch-typing-indicator', textContent: 'escribiendo...', style: 'display:none; font-size:0.75rem; color:var(--chat-accent, #00f5d4); margin-left:8px; font-style:italic;' });
   convNameWrap.appendChild(convName);
   convNameWrap.appendChild(editNameBtn);
+  convNameWrap.appendChild(typingIndicator);
 
   const badge = _el('span', { className: 'ch-badge' });
 
@@ -722,6 +724,25 @@ export async function initChat(container, user, conversationId, options = {}) {
           if (_expiryIntervalId) clearInterval(_expiryIntervalId);
           _expiryIntervalId = setInterval(checkExpiry, 10000); // Check every 10s
       }
+
+      // Listen for typing
+      const typingRef = ref(db, `conversations/${conversationId}/typing`);
+      onValue(typingRef, snap => {
+        if (snap.exists()) {
+          const typingUsers = snap.val();
+          let isOtherTyping = false;
+          for (let uid in typingUsers) {
+            if (uid !== user.uid && Date.now() - typingUsers[uid] < 5000) {
+              isOtherTyping = true;
+              break;
+            }
+          }
+          typingIndicator.style.display = isOtherTyping ? 'block' : 'none';
+        } else {
+          typingIndicator.style.display = 'none';
+        }
+      });
+      _listeners.push({ ref: typingRef, type: 'value' });
     } else {
       convName.textContent = 'Conversación no encontrada';
     }
@@ -915,10 +936,21 @@ export async function initChat(container, user, conversationId, options = {}) {
     }
   };
 
+  let _typingTimeout = null;
+
   textInput.addEventListener('input', () => {
     textInput.style.height = 'auto';
     textInput.style.height = Math.min(textInput.scrollHeight, 100) + 'px';
     _updateSendBtn();
+
+    // Typing indicator
+    if (_currentConvId && _currentUser) {
+      set(ref(db, `conversations/${_currentConvId}/typing/${_currentUser.uid}`), Date.now());
+      clearTimeout(_typingTimeout);
+      _typingTimeout = setTimeout(() => {
+        set(ref(db, `conversations/${_currentConvId}/typing/${_currentUser.uid}`), null);
+      }, 2000);
+    }
   });
   textInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); _send(); }
@@ -931,8 +963,8 @@ export async function initChat(container, user, conversationId, options = {}) {
   let _recInterval = null;
   const recordingUI = _el('div', { className: 'ch-recording-ui' });
   recordingUI.style.display = 'none';
-  const recTime = _el('span', { textContent: '0:00' });
-  recordingUI.innerHTML = `<div class="ch-recording-dot"></div><span>Grabando...</span>`;
+  recordingUI.innerHTML = `<div class="ch-recording-dot"></div><span>Grabando...</span><canvas id="ch-wave-canvas" width="100" height="24" style="margin-left:10px;"></canvas>`;
+  const recTime = _el('span', { textContent: ' 0:00', style: 'margin-left:8px;' });
   recordingUI.appendChild(recTime);
 
   async function _toggleRecording() {
@@ -946,13 +978,46 @@ export async function initChat(container, user, conversationId, options = {}) {
       _mediaRecorder = new MediaRecorder(stream);
       _audioChunks = [];
 
+      // Setup Web Audio API for waveform
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const analyser = audioCtx.createAnalyser();
+      const source = audioCtx.createMediaStreamSource(stream);
+      source.connect(analyser);
+      analyser.fftSize = 64;
+      const bufferLength = analyser.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+      
+      const canvas = recordingUI.querySelector('#ch-wave-canvas');
+      const canvasCtx = canvas.getContext('2d');
+      let animationId;
+
+      const draw = () => {
+        if (!window._isRecording) return;
+        animationId = requestAnimationFrame(draw);
+        analyser.getByteFrequencyData(dataArray);
+
+        canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+        const barWidth = (canvas.width / bufferLength) * 2.5;
+        let x = 0;
+
+        for(let i = 0; i < bufferLength; i++) {
+          const barHeight = Math.max(2, (dataArray[i] / 255) * canvas.height);
+          canvasCtx.fillStyle = 'var(--chat-accent, #f72585)';
+          canvasCtx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
+          x += barWidth + 1;
+        }
+      };
+      draw();
+
       _mediaRecorder.addEventListener('dataavailable', e => {
         if (e.data.size > 0) _audioChunks.push(e.data);
       });
 
-      _mediaRecorder.addEventListener('stop', () => {
+      _mediaRecorder.addEventListener('stop', async () => {
         window._isRecording = false;
         clearInterval(_recInterval);
+        cancelAnimationFrame(animationId);
+        try { audioCtx.close(); } catch(e){}
         stream.getTracks().forEach(t => t.stop());
 
         textInput.style.display = '';
