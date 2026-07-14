@@ -90,9 +90,9 @@ function _injectStyles() {
     .ch-quoted-msg .q-sender { color:#00f5d4; font-weight:600; margin-bottom:2px; font-size:0.75rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .ch-quoted-msg .q-text { color:rgba(255,255,255,0.7); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     
-    .ch-reply-preview { position:absolute; bottom:100%; left:0; right:0; background:#16162a; border-top:1px solid rgba(255,255,255,0.06); padding:8px 16px; display:none; align-items:center; gap:10px; z-index:0; }
+    .ch-reply-preview { position:absolute; bottom:100%; left:0; right:0; background:#16162a; border-top:1px solid rgba(255,255,255,0.06); padding:8px 16px; display:none; align-items:center; gap:10px; z-index:0; box-sizing: border-box; }
     .ch-reply-preview.active { display:flex; }
-    .ch-reply-preview-content { flex:1; border-left:3px solid #00f5d4; padding-left:8px; overflow:hidden; }
+    .ch-reply-preview-content { flex:1; border-left:3px solid #00f5d4; padding-left:8px; overflow:hidden; min-width:0; }
     .ch-reply-preview-content .q-sender { color:#00f5d4; font-weight:600; font-size:0.75rem; }
     .ch-reply-preview-content .q-text { color:rgba(255,255,255,0.6); font-size:0.8rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .ch-reply-preview-close { background:none; border:none; color:rgba(255,255,255,0.4); cursor:pointer; padding:4px; border-radius:50%; display:flex; transition:all 0.2s; }
