@@ -417,25 +417,41 @@ function _openViewOnce(msg, msgId) {
 /**
  * Plays a clean, synthetic notification sound using Web Audio API
  */
-function _playNotificationSound() {
+function _playNotificationSound(type = 'received') {
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(880, ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(1760, ctx.currentTime + 0.1);
-    
-    gain.gain.setValueAtTime(0, ctx.currentTime);
-    gain.gain.linearRampToValueAtTime(0.2, ctx.currentTime + 0.05);
-    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
-    
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    
-    osc.start();
-    osc.stop(ctx.currentTime + 0.3);
+    if (type === 'received') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(1760, ctx.currentTime + 0.1);
+      
+      gain.gain.setValueAtTime(0, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.2, ctx.currentTime + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+      
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      
+      osc.start();
+      osc.stop(ctx.currentTime + 0.3);
+    } else {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(600, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(300, ctx.currentTime + 0.05);
+      
+      gain.gain.setValueAtTime(0, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.03, ctx.currentTime + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+      
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      
+      osc.start();
+      osc.stop(ctx.currentTime + 0.1);
+    }
   } catch (e) {
     console.warn('AudioContext no soportado');
   }
@@ -870,15 +886,19 @@ export async function initChat(container, user, conversationId, options = {}) {
     _renderMessage(msg, snapshot.key, msgsContainer);
 
     // Alertas de Sonido y Notificaciones
-    if (!firstLoad && msg.sender !== _currentUser.uid) {
-      _playNotificationSound();
-      
-      if (document.hidden && window.Notification && Notification.permission === 'granted') {
-        const notif = new Notification('Nuevo mensaje en ShadowChat', {
-          body: 'Has recibido un nuevo mensaje secreto.',
-          icon: './icon.jpg'
-        });
-        notif.onclick = () => window.focus();
+    if (!firstLoad) {
+      if (msg.senderId !== _currentUser.uid) {
+        _playNotificationSound('received');
+        
+        if (document.hidden && window.Notification && Notification.permission === 'granted') {
+          const notif = new Notification('Nuevo mensaje en ShadowChat', {
+            body: 'Has recibido un nuevo mensaje secreto.',
+            icon: './icon.jpg'
+          });
+          notif.onclick = () => window.focus();
+        }
+      } else {
+        _playNotificationSound('sent');
       }
     }
 
