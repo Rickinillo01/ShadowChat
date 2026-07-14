@@ -186,26 +186,24 @@ async function openConversation(convId) {
     state.layout.chatAreaEl.innerHTML = '';
     state.layout.showChat();
 
+    const closeChat = () => {
+        chat.destroyChat();
+        state.layout.chatAreaEl.innerHTML = `
+            <div class="sc-chat-empty">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" opacity="0.35"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                <p style="font-size:0.95rem;font-family:Inter,sans-serif;margin:0;color:rgba(255,255,255,0.2)">Selecciona una conversación</p>
+            </div>`;
+        state.layout.showSidebar();
+        sidebar.setActiveConversation(null);
+        state.currentConvId = null;
+    };
+
     chat.initChat(state.layout.chatAreaEl, state.currentUser, convId, {
-        onBack: () => {
-            chat.destroyChat();
-            state.layout.chatAreaEl.innerHTML = `
-                <div class="sc-chat-empty">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" opacity="0.35"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                    <p style="font-size:0.95rem;font-family:Inter,sans-serif;margin:0;color:rgba(255,255,255,0.2)">Selecciona una conversación</p>
-                </div>`;
-            state.layout.showSidebar();
-            sidebar.setActiveConversation(null);
-            state.currentConvId = null;
-        },
+        onBack: closeChat,
         onPanic: async () => {
             const { deleteConversation } = await import('./chat/messages.js');
             await deleteConversation(convId);
-            if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
-                window.Capacitor.Plugins.App.exitApp();
-            } else {
-                window.location.replace('https://www.google.com');
-            }
+            closeChat();
         }
     });
 }
