@@ -6,14 +6,21 @@ const chatView = document.getElementById('chat-view');
 // ── OneSignal Init ─────────────────────────────────────────
 function initNativeOneSignal() {
     if (window.plugins && window.plugins.OneSignal) {
-        window.plugins.OneSignal.initialize("17d0128f-85bd-46e9-b575-e5cb865752a3");
-        window.plugins.OneSignal.Notifications.requestPermission(true).then((accepted) => {
-            console.log("User accepted notifications: " + accepted);
-        });
+        try {
+            window.plugins.OneSignal.initialize("17d0128f-85bd-46e9-b575-e5cb865752a3");
+            window.plugins.OneSignal.Notifications.requestPermission(true).then((accepted) => {
+                console.log("User accepted notifications: " + accepted);
+            });
+        } catch (e) {
+            console.error("Error initializing OneSignal:", e);
+        }
     }
 }
 
-if (window.Capacitor && window.Capacitor.isNative) {
+// En Capacitor 3+, window.Capacitor.isNative ya no existe, usamos getPlatform() o simplemente comprobamos si existe el plugin.
+const isNativeApp = window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform() !== 'web';
+
+if (isNativeApp || (window.plugins && window.plugins.OneSignal)) {
     if (window.plugins && window.plugins.OneSignal) {
         initNativeOneSignal();
     } else {
@@ -102,7 +109,7 @@ async function initChatUI(user, hideSidebar = false) {
     state.currentUser = user;
 
     // Bind OneSignal to Firebase UID
-    if (window.Capacitor && window.Capacitor.isNative && window.plugins && window.plugins.OneSignal) {
+    if ((isNativeApp || (window.plugins && window.plugins.OneSignal)) && window.plugins && window.plugins.OneSignal) {
         window.plugins.OneSignal.login(user.uid);
     } else if (window.OneSignalDeferred) {
         window.OneSignalDeferred.push(function(OneSignal) {
