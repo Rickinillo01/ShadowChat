@@ -150,6 +150,7 @@ export async function showNewConversationModal(container, currentUser, onCreated
       <div class="nc-toggle">
         <button class="nc-pill active" data-type="private">Privada</button>
         <button class="nc-pill" data-type="group">Grupal</button>
+        <button class="nc-pill" data-type="temp">Temporal</button>
       </div>
       <div id="nc-group-name-wrap" style="display:none">
         <div class="nc-label">Nombre del grupo</div>
@@ -258,40 +259,55 @@ export async function showNewConversationModal(container, currentUser, onCreated
     createBtn.textContent = 'Creando...';
 
     try {
+      const selectedIds = [...selectedUsers];
       const members = {};
       members[currentUser.uid] = true;
-      selectedUsers.forEach(uid => { members[uid] = true; });
+      selectedIds.forEach(uid => { members[uid] = true; });
+      
+      // For private/temp chats, check if one already exists
+      if (convType === 'private' || convType === 'temp') {
+        const selectedId = selectedIds[0];
+        let existingConvId = null;
 
-      // For private chats, check if one already exists
-      if (convType === 'private') {
-        const otherUid = [...selectedUsers][0];
-        const convsSnap = await get(ref(db, 'conversations'));
-        if (convsSnap.exists()) {
-          const convs = convsSnap.val();
-          for (const [id, c] of Object.entries(convs)) {
-            if (c.type === 'private' && c.members && c.members[currentUser.uid] && c.members[otherUid]) {
-              hideNewConversationModal();
-              if (onCreated) onCreated(id);
-              return;
+        if (convType === 'private') {
+          const convsSnap = await get(ref(db, 'conversations'));
+          if (convsSnap.exists()) {
+            const convs = convsSnap.val();
+            for (const [id, c] of Object.entries(convs)) {
+              if (c.type === 'private' && !c.isTemp && c.members && c.members[currentUser.uid] && c.members[selectedId]) {
+                existingConvId = id;
+                break;
+              }
             }
           }
+        }
+        
+        if (existingConvId) {
+          hideNewConversationModal();
+          if (onCreated) onCreated(existingConvId);
+          return;
         }
       }
 
       // Create new conversation
       const convData = {
-        type: convType,
+        type: convType === 'temp' ? 'private' : convType,
         name: convType === 'group' ? groupNameInput.value.trim() : null,
         createdBy: currentUser.uid,
         createdAt: Date.now(),
         members,
         lastMessage: {
-          text: 'Conversación creada',
+          text: convType === 'temp' ? 'Conversación temporal iniciada' : 'Conversación creada',
           sender: 'Sistema',
           timestamp: Date.now(),
           type: 'system'
         }
       };
+
+      if (convType === 'temp') {
+        convData.isTemp = true;
+        convData.expiresAt = Date.now() + 60 * 60 * 1000; // 60 minutes
+      }
 
       const newRef = push(ref(db, 'conversations'));
       await set(newRef, convData);

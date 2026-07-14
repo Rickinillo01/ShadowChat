@@ -236,7 +236,18 @@ async function _renderList(listEl) {
   // Filter by search
   const filtered = [];
   for (const [id, conv] of convArr) {
-    const name = await _getConvDisplayName(conv, id);
+    let name = await _getConvDisplayName(conv, id);
+    
+    if (conv.isTemp) {
+      if (conv.expiresAt && Date.now() > conv.expiresAt) {
+        // Cleanup expired temporary conversation
+        set(ref(db, \`conversations/\${id}\`), null).catch(()=>{});
+        set(ref(db, \`messages/\${id}\`), null).catch(()=>{});
+        continue;
+      }
+      name = \`⏳ \${name}\`;
+    }
+    
     if (_searchTerm && !name.toLowerCase().includes(_searchTerm.toLowerCase())) continue;
     filtered.push({ id, conv, name });
   }

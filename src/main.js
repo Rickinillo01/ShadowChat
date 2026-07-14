@@ -74,11 +74,11 @@ async function loadLayoutModule() {
     return layoutModule;
 }
 async function loadSidebarModule() {
-    if (!sidebarModule) sidebarModule = await import('./chat/sidebar.js?v=4');
+    if (!sidebarModule) sidebarModule = await import('./chat/sidebar.js?v=5');
     return sidebarModule;
 }
 async function loadNewConvModule() {
-    if (!newConvModule) newConvModule = await import('./chat/newConversation.js?v=3');
+    if (!newConvModule) newConvModule = await import('./chat/newConversation.js?v=4');
     return newConvModule;
 }
 async function loadProfileModule() {
