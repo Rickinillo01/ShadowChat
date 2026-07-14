@@ -190,14 +190,14 @@ function _injectStyles() {
     .ch-attach-option { display:flex; align-items:center; gap:10px; padding:10px 14px; border-radius:8px; cursor:pointer; font-size:0.85rem; color:#e2e8f0; transition:background 0.15s; border:none; background:none; width:100%; text-align:left; font-family:'Inter',sans-serif; }
     .ch-attach-option:hover { background:rgba(255,255,255,0.06); }
 
-    .ch-preview { padding:10px 16px 0; background:var(--chat-surface, #0d0d15); display:flex; align-items:center; gap:10px; }
-    .ch-preview-thumb { width:48px; height:48px; border-radius:8px; object-fit:cover; }
-    .ch-preview-info { flex:1; }
+    .ch-preview { padding:10px 16px 0; background:var(--chat-surface, #0d0d15); display:flex; align-items:center; gap:10px; flex-shrink:0; max-width:100%; box-sizing:border-box; }
+    .ch-preview-thumb { width:48px; height:48px; border-radius:8px; object-fit:cover; flex-shrink:0; }
+    .ch-preview-info { flex:1; min-width:0; }
     .ch-preview-name { font-size:0.82rem; color:#e2e8f0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .ch-preview-size { font-size:0.72rem; color:rgba(255,255,255,0.3); }
-    .ch-preview-viewonce { display:flex; align-items:center; gap:6px; font-size:0.78rem; color:rgba(255,255,255,0.4); cursor:pointer; }
+    .ch-preview-viewonce { display:flex; align-items:center; gap:6px; font-size:0.78rem; color:rgba(255,255,255,0.4); cursor:pointer; flex-shrink:0; }
     .ch-preview-viewonce input { accent-color:#00f5d4; }
-    .ch-preview-close { background:rgba(247,37,133,0.15); border:none; color:#f72585; cursor:pointer; padding:6px; display:flex; transition:all 0.2s; border-radius:50%; }
+    .ch-preview-close { background:rgba(247,37,133,0.15); border:none; color:#f72585; cursor:pointer; padding:8px; display:flex; align-items:center; justify-content:center; transition:all 0.2s; border-radius:50%; flex-shrink:0; width:32px; height:32px; }
     .ch-preview-close:hover { background:rgba(247,37,133,0.25); transform:scale(1.1); }
     .ch-upload-bar { height:3px; background:rgba(0,245,212,0.1); border-radius:2px; margin:6px 16px 0; overflow:hidden; }
     .ch-upload-bar-fill { height:100%; background:#00f5d4; border-radius:2px; width:0; transition:width 0.3s; }
