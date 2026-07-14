@@ -153,7 +153,8 @@ function _injectStyles() {
     .ch-send-btn:hover { background:rgba(0,245,212,0.25); transform:scale(1.08); }
     .ch-send-btn.recording { background:rgba(247,37,133,0.15); color:#f72585; animation:chPulse 1.5s infinite; }
     @keyframes chPulse { 0% { box-shadow:0 0 0 0 rgba(247,37,133,0.4); } 70% { box-shadow:0 0 0 10px rgba(247,37,133,0); } 100% { box-shadow:0 0 0 0 rgba(247,37,133,0); } }
-    .ch-recording-ui { display:flex; align-items:center; gap:8px; flex:1; padding:10px 14px; background:rgba(247,37,133,0.05); border-radius:20px; color:#f72585; font-size:0.88rem; font-family:'Inter',sans-serif; }
+    .ch-recording-ui { display:flex; align-items:center; gap:8px; flex:1; padding:10px 14px; background:rgba(247,37,133,0.05); border-radius:20px; color:#f72585; font-size:0.88rem; font-family:'Inter',sans-serif; min-width:0; overflow:hidden; }
+    @media(max-width:400px) { .ch-recording-text { display:none; } .ch-recording-ui { padding:10px; } }
     .ch-recording-dot { width:8px; height:8px; background:#f72585; border-radius:50%; animation:chBlink 1s infinite; }
     @keyframes chBlink { 0%, 100% { opacity:1; } 50% { opacity:0.3; } }
 
@@ -963,8 +964,8 @@ export async function initChat(container, user, conversationId, options = {}) {
   let _recInterval = null;
   const recordingUI = _el('div', { className: 'ch-recording-ui' });
   recordingUI.style.display = 'none';
-  recordingUI.innerHTML = `<div class="ch-recording-dot"></div><span>Grabando...</span><canvas id="ch-wave-canvas" width="100" height="24" style="margin-left:10px;"></canvas>`;
-  const recTime = _el('span', { textContent: ' 0:00', style: 'margin-left:8px;' });
+  recordingUI.innerHTML = `<div class="ch-recording-dot"></div><span class="ch-recording-text">Grabando...</span><canvas id="ch-wave-canvas" width="80" height="24" style="margin-left:auto; width:100%; max-width:80px;"></canvas>`;
+  const recTime = _el('span', { textContent: ' 0:00', style: 'margin-left:8px; flex-shrink:0;' });
   recordingUI.appendChild(recTime);
 
   async function _toggleRecording() {
