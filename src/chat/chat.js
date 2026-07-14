@@ -15,6 +15,8 @@ import {
   uploadMedia, getMediaType, validateFile, formatFileSize, generateThumbnail
 } from './media.js';
 
+import { state } from '../main.js';
+
 // ─── State ──────────────────────────────────────────────────
 let _listeners = [];
 let _cleanupIntervalId = null;
@@ -453,6 +455,30 @@ function _renderMessage(msg, msgId, msgsContainer) {
     bubble.appendChild(editedEl);
   }
   const timeEl = _el('div', { className: 'ch-msg-time', textContent: formatTimestamp(msg.timestamp) });
+  
+  if (isSent) {
+    const checksWrap = _el('span', { className: 'ch-msg-checks', style: 'margin-left:4px; font-size:0.75rem; font-weight:bold; letter-spacing:-1px;' });
+    let icon = '✓✓';
+    let color = 'rgba(255,255,255,0.4)';
+    const canSee = state.userData ? state.userData.canSeeReadReceipts !== false : true;
+
+    if (canSee && msg.viewedBy) {
+      let viewedByOthers = false;
+      for (const uid in msg.viewedBy) {
+        if (uid !== _currentUser.uid) {
+           viewedByOthers = true; break;
+        }
+      }
+      if (viewedByOthers) {
+         color = 'var(--chat-accent, #00f5d4)';
+      }
+    }
+
+    checksWrap.textContent = icon;
+    checksWrap.style.color = color;
+    timeEl.appendChild(checksWrap);
+  }
+
   bubble.appendChild(timeEl);
 
   // Self-destruct bar

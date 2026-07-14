@@ -75,6 +75,10 @@ function _injectStyles() {
     .ad-btn-del { background: rgba(255, 0, 84, 0.1); color: #ff0054; border: 1px solid rgba(255, 0, 84, 0.2); }
     .ad-btn-del:hover { background: rgba(255, 0, 84, 0.2); }
     .ad-btn-del.active { background: #ff0054; color: #fff; }
+
+    .ad-btn-read { background: rgba(0, 245, 212, 0.1); color: #00f5d4; border: 1px solid rgba(0, 245, 212, 0.2); }
+    .ad-btn-read:hover { background: rgba(0, 245, 212, 0.2); }
+    .ad-btn-read.active { background: #00f5d4; color: #000; }
   `;
   document.head.appendChild(s);
 }
@@ -169,6 +173,7 @@ async function _loadUsers(bodyEl, currentUser) {
           <button class="ad-btn ad-btn-mute ${udata.muted ? 'active' : ''}" data-uid="${uid}" data-action="mute">Mute</button>
           <button class="ad-btn ad-btn-time" data-uid="${uid}" data-action="timeout">Timeout</button>
           <button class="ad-btn ad-btn-ban ${udata.banned ? 'active' : ''}" data-uid="${uid}" data-action="ban">Ban</button>
+          <button class="ad-btn ad-btn-read ${udata.canSeeReadReceipts === false ? 'active' : ''}" data-uid="${uid}" data-action="toggleRead" title="Bloquear doble check azul">Vistos</button>
           <button class="ad-btn ad-btn-del" data-uid="${uid}" data-action="delete">Borrar</button>
         </div>
       `;

@@ -16,12 +16,13 @@ OneSignalDeferred.push(async function(OneSignal) {
 });
 
 // ── App State ──────────────────────────────────────────────
-const state = {
+export const state = {
     currentLayer: 'intro',
     currentUser: null,
     isTransitioning: false,
     layout: null,
-    currentConvId: null
+    currentConvId: null,
+    userData: null
 };
 
 // ── Lazy-loaded modules ────────────────────────────────────
@@ -92,7 +93,13 @@ async function initChatUI(user, hideSidebar = false) {
 
     // Apply user theme
     try {
-        const { get, ref, db } = await import('./firebase.js');
+        const { get, ref, db, onValue } = await import('./firebase.js');
+        
+        // Listen to user profile changes
+        onValue(ref(db, `users/${user.uid}`), (snap) => {
+           if(snap.exists()) state.userData = snap.val();
+        });
+
         const { applyTheme } = await import('./chat/themes.js');
         const tSnap = await get(ref(db, `users/${user.uid}/theme`));
         applyTheme(tSnap.exists() ? tSnap.val() : 0);
