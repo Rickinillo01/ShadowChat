@@ -125,6 +125,18 @@ async function initChatUI(user) {
             }
         }
     });
+
+    // Check tutorial state
+    try {
+        const { get, db, ref } = await import('./firebase.js');
+        const tutSnap = await get(ref(db, `users/${user.uid}/tutorialCompleted`));
+        if (!tutSnap.exists() || tutSnap.val() !== true) {
+            const { showTutorial } = await import('./chat/tutorial.js');
+            showTutorial(document.body, user);
+        }
+    } catch(e) {
+        console.warn("Error checking tutorial state:", e);
+    }
 }
 
 // ── Open a conversation ────────────────────────────────────
