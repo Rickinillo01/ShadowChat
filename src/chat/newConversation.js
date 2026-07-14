@@ -207,7 +207,7 @@ export async function showNewConversationModal(container, currentUser, onCreated
       `;
 
       item.addEventListener('click', () => {
-        if (convType === 'private') {
+        if (convType === 'private' || convType === 'temp') {
           selectedUsers.clear();
           selectedUsers.add(u.uid);
         } else {
@@ -224,7 +224,7 @@ export async function showNewConversationModal(container, currentUser, onCreated
 
   function updateCreateBtn() {
     const hasUsers = selectedUsers.size > 0;
-    const hasGroupName = convType === 'private' || (groupNameInput.value.trim().length > 0);
+    const hasGroupName = (convType === 'private' || convType === 'temp') || (groupNameInput.value.trim().length > 0);
     createBtn.disabled = !(hasUsers && hasGroupName);
   }
 
@@ -234,7 +234,7 @@ export async function showNewConversationModal(container, currentUser, onCreated
       convType = pill.dataset.type;
       pills.forEach(p => p.classList.toggle('active', p === pill));
       groupNameWrap.style.display = convType === 'group' ? '' : 'none';
-      if (convType === 'private' && selectedUsers.size > 1) {
+      if ((convType === 'private' || convType === 'temp') && selectedUsers.size > 1) {
         const first = [...selectedUsers][0];
         selectedUsers.clear();
         selectedUsers.add(first);
