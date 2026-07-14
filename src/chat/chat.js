@@ -830,6 +830,13 @@ export async function initChat(container, user, conversationId, options = {}) {
     }
   }
 
+  // Prevent focus loss to keep mobile keyboard open
+  const preventFocus = (e) => {
+    if (e.cancelable) e.preventDefault();
+  };
+  sendBtn.addEventListener('mousedown', preventFocus);
+  sendBtn.addEventListener('touchstart', preventFocus, { passive: false });
+
   sendBtn.addEventListener('click', () => {
     if (window._isRecording || (!textInput.value.trim() && !_pendingFile)) {
       _toggleRecording();
@@ -937,7 +944,9 @@ export async function initChat(container, user, conversationId, options = {}) {
 
     // Alertas de Sonido y Notificaciones
     if (!firstLoad) {
+      console.log(`[DEBUG] Nuevo mensaje detectado. msg.senderId: ${msg.senderId}, _currentUser.uid: ${_currentUser.uid}`);
       if (msg.senderId !== _currentUser.uid) {
+        console.log(`[DEBUG] Reproduciendo sonido porque el senderId es diferente al current user.`);
         _playNotificationSound('received');
         
         if (document.hidden && window.Notification && Notification.permission === 'granted') {
