@@ -811,14 +811,23 @@ export async function initChat(container, user, conversationId, options = {}) {
   const backBtn = _el('button', { className: 'ch-back', innerHTML: ICONS.back });
   backBtn.addEventListener('click', () => { if (_backHandler) _backHandler(); });
 
+  const headerInfoWrap = _el('div', { className: 'ch-header-info-wrap', style: 'display: flex; flex-direction: column; justify-content: center; flex: 1; overflow: hidden;' });
+  
   const convNameWrap = _el('div', { className: 'ch-conv-name-wrap' });
   const convName = _el('div', { className: 'ch-conv-name', textContent: 'Cargando...' });
   const editNameBtn = _el('button', { className: 'ch-edit-name', innerHTML: '✏️', title: 'Cambiar nombre local' });
   editNameBtn.style.display = 'none';
-  const typingIndicator = _el('div', { className: 'ch-typing-indicator', textContent: 'escribiendo...', style: 'display:none; font-size:0.75rem; color:var(--chat-accent, #00f5d4); margin-left:8px; font-style:italic;' });
   convNameWrap.appendChild(convName);
   convNameWrap.appendChild(editNameBtn);
-  convNameWrap.appendChild(typingIndicator);
+  
+  const subtitleRow = _el('div', { style: 'display: flex; align-items: center; min-height: 14px; gap: 4px; margin-top: 2px;' });
+  const onlineIndicator = _el('div', { className: 'ch-online-indicator', textContent: '', style: 'font-size:0.75rem; color:#00f5d4; font-weight: 500;' });
+  const typingIndicator = _el('div', { className: 'ch-typing-indicator', textContent: 'escribiendo...', style: 'display:none; font-size:0.75rem; color:var(--chat-accent, #00f5d4); font-style:italic;' });
+  subtitleRow.appendChild(onlineIndicator);
+  subtitleRow.appendChild(typingIndicator);
+  
+  headerInfoWrap.appendChild(convNameWrap);
+  headerInfoWrap.appendChild(subtitleRow);
 
   const badge = _el('span', { className: 'ch-badge' });
 
@@ -862,6 +871,31 @@ export async function initChat(container, user, conversationId, options = {}) {
           convName.textContent = 'Usuario';
         }
         badge.textContent = '';
+        
+        // Listen to presence
+        if (otherUid) {
+          const presenceRef = ref(db, `users/${otherUid}`);
+          onValue(presenceRef, (snap) => {
+             if (snap.exists()) {
+                 const data = snap.val();
+                 if (data.online) {
+                     onlineIndicator.textContent = 'En línea';
+                     onlineIndicator.style.color = '#00f5d4';
+                 } else {
+                     if (data.lastSeen) {
+                         const date = new Date(data.lastSeen);
+                         const isToday = new Date().toDateString() === date.toDateString();
+                         const time = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                         onlineIndicator.textContent = `últ. vez ${isToday ? 'hoy' : date.toLocaleDateString()} a las ${time}`;
+                         onlineIndicator.style.color = 'rgba(255,255,255,0.4)';
+                     } else {
+                         onlineIndicator.textContent = '';
+                     }
+                 }
+             }
+          });
+          _listeners.push({ ref: presenceRef, type: 'value' });
+        }
       }
       if (conv.expiresAt) {
           const banner = _el('div', { 
@@ -958,7 +992,7 @@ export async function initChat(container, user, conversationId, options = {}) {
   gearBtn.addEventListener('click', () => ttlDrop.classList.toggle('open'));
 
   header.appendChild(backBtn);
-  header.appendChild(convNameWrap);
+  header.appendChild(headerInfoWrap);
   header.appendChild(badge);
   header.appendChild(hideBtn);
   header.appendChild(ttlDropWrap);

@@ -31,6 +31,8 @@ function _injectStyles() {
       padding: 16px; border-bottom: 1px solid rgba(255,255,255,0.06);
       background: var(--chat-surface, #0d0d15);
     }
+    .sb-avatar-wrap { position: relative; flex-shrink: 0; display: inline-flex; }
+    .sb-online-dot { position: absolute; bottom: 2px; right: 2px; width: 10px; height: 10px; background: #00f5d4; border: 2px solid var(--chat-surface, #0d0d15); border-radius: 50%; z-index: 2; box-shadow: 0 0 5px rgba(0, 245, 212, 0.5); }
     .sb-avatar {
       width: 38px; height: 38px; border-radius: 50%; object-fit: cover;
       cursor: pointer; flex-shrink: 0; transition: transform 0.2s;
@@ -205,9 +207,10 @@ async function _getConvAvatar(conv) {
   const members = Object.keys(conv.members || {});
   const otherUid = members.find(uid => uid !== _currentUser.uid) || members[0];
   const user = await _fetchUser(otherUid);
-  if (user?.photoURL) return { type: 'url', value: user.photoURL };
+  const isOnline = user?.online || false;
+  if (user?.photoURL) return { type: 'url', value: user.photoURL, online: isOnline };
   const name = user?.username || 'U';
-  return { type: 'letter', value: name[0].toUpperCase() };
+  return { type: 'letter', value: name[0].toUpperCase(), online: isOnline };
 }
 
 /**
@@ -242,11 +245,18 @@ async function _renderList(listEl) {
       ? `<img class="sb-item-avatar" src="${avatar.value}" alt="">`
       : `<div class="sb-item-avatar-letter">${avatar.value}</div>`;
 
+    const avatarWrap = `
+      <div class="sb-avatar-wrap">
+        ${avatarHtml}
+        ${avatar.online ? `<div class="sb-online-dot"></div>` : ''}
+      </div>
+    `;
+
     const preview = conv.lastMessage?.text || 'Sin mensajes';
     const time = conv.lastMessage?.timestamp ? formatTimestamp(conv.lastMessage.timestamp) : '';
 
     item.innerHTML = `
-      ${avatarHtml}
+      ${avatarWrap}
       <div class="sb-item-info">
         <div class="sb-item-name">${name}</div>
         <div class="sb-item-preview">${preview.length > 35 ? preview.slice(0, 35) + '…' : preview}</div>
@@ -285,13 +295,20 @@ export function initSidebar(sidebarEl, currentUser, callbacks) {
     ? `<img class="sb-avatar" id="sb-user-avatar" src="${currentUser.photoURL}" alt="">`
     : `<div class="sb-avatar-placeholder" id="sb-user-avatar">${(currentUser.displayName || 'U')[0].toUpperCase()}</div>`;
 
+  const avatarWrap = `
+    <div class="sb-avatar-wrap">
+      ${avatarHtml}
+      <div class="sb-online-dot"></div>
+    </div>
+  `;
+
   let adminBtnHtml = '';
   if (currentUser.email === 'cleivsec@gmail.com') {
     adminBtnHtml = `<button class="sb-panic-btn" id="sb-admin-btn" title="Panel Admin" style="color:#00f5d4; margin-right:4px;">🛡️</button>`;
   }
 
   header.innerHTML = `
-    ${avatarHtml}
+    ${avatarWrap}
     <div class="sb-username">${currentUser.displayName || 'Usuario'}</div>
     ${adminBtnHtml}
     <button class="sb-panic-btn" title="Invitar Anónimo (1h)" id="sb-invite-btn" style="color:#00f5d4; margin-right:4px;">⏳</button>

@@ -33,7 +33,8 @@ import {
   orderByChild,
   limitToLast,
   get,
-  child
+  child,
+  onDisconnect
 } from 'https://www.gstatic.com/firebasejs/11.7.1/firebase-database.js';
 
 import {
@@ -93,7 +94,8 @@ export {
   orderByChild,
   limitToLast,
   get,
-  child
+  child,
+  onDisconnect
 };
 
 // Storage functions

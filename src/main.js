@@ -231,6 +231,26 @@ async function onAuthSuccess(user) {
     state.currentUser = user;
     authView.classList.add('hidden');
     chatView.classList.remove('hidden');
+
+    try {
+        const { ref, update, onDisconnect, serverTimestamp, db } = await import('./firebase.js');
+        const userRef = ref(db, `users/${user.uid}`);
+        
+        // 1. Set offline status on disconnect
+        onDisconnect(userRef).update({ 
+            online: false, 
+            lastSeen: serverTimestamp() 
+        });
+
+        // 2. Set online status now
+        await update(userRef, { 
+            online: true, 
+            lastSeen: serverTimestamp() 
+        });
+    } catch(e) {
+        console.warn("Presence init failed:", e);
+    }
+
     await initChatUI(user);
 }
 
