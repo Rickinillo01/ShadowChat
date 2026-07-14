@@ -98,6 +98,25 @@ function _injectStyles() {
     .ch-reply-preview-content .q-text { color:rgba(255,255,255,0.6); font-size:0.8rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .ch-reply-preview-close { background:none; border:none; color:rgba(255,255,255,0.4); cursor:pointer; padding:4px; border-radius:50%; display:flex; transition:all 0.2s; }
     .ch-reply-preview-close:hover { color:#f72585; background:rgba(247,37,133,0.1); }
+
+    .ch-lp-card { display:flex; flex-direction:column; margin-top:8px; border:1px solid rgba(255,255,255,0.08); border-radius:8px; overflow:hidden; text-decoration:none; background:rgba(255,255,255,0.02); transition:all 0.2s; }
+    .ch-lp-card:hover { background:rgba(255,255,255,0.04); border-color:rgba(255,255,255,0.15); }
+    .ch-lp-img { width:100%; height:120px; object-fit:cover; }
+    .ch-lp-info { padding:10px; display:flex; flex-direction:column; gap:4px; }
+    .ch-lp-title { font-size:0.85rem; font-weight:600; color:#e2e8f0; line-height:1.2; }
+    .ch-lp-desc { font-size:0.75rem; color:rgba(255,255,255,0.5); line-height:1.3; }
+    .ch-lp-domain { font-size:0.65rem; color:var(--chat-accent, #00f5d4); text-transform:uppercase; letter-spacing:0.5px; }
+
+    .ch-reactions-wrap { position:absolute; bottom:-12px; right:10px; display:flex; gap:2px; z-index:5; }
+    .ch-msg.received .ch-reactions-wrap { right:auto; left:10px; }
+    .ch-reaction { background:var(--chat-surface-2, #16162a); border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:2px 4px; font-size:0.75rem; display:flex; align-items:center; gap:2px; box-shadow:0 2px 5px rgba(0,0,0,0.2); cursor:pointer; }
+    .ch-reaction:hover { border-color:var(--chat-accent, #00f5d4); }
+    .ch-reaction-count { font-size:0.65rem; color:rgba(255,255,255,0.6); font-weight:600; }
+    .ch-emoji-picker { position:absolute; top:-35px; right:0; background:var(--chat-surface-2, #16162a); border:1px solid rgba(255,255,255,0.1); border-radius:16px; padding:4px 8px; display:flex; gap:8px; box-shadow:0 4px 15px rgba(0,0,0,0.3); opacity:0; pointer-events:none; transition:all 0.2s; z-index:20; }
+    .ch-msg.received .ch-emoji-picker { right:auto; left:0; }
+    .ch-bubble:hover .ch-emoji-picker, .ch-emoji-picker.visible { opacity:1; pointer-events:auto; transform:translateY(-5px); }
+    .ch-emoji-opt { cursor:pointer; font-size:1.2rem; transition:transform 0.15s; padding:4px; border-radius:50%; }
+    .ch-emoji-opt:hover { transform:scale(1.3); background:rgba(255,255,255,0.1); }
     
     .ch-input-area { position:relative; z-index:2; background:var(--chat-surface, #0d0d15); border-top:1px solid rgba(255,255,255,0.06); padding:10px 16px; display:flex; flex-direction:column; gap:8px; flex-shrink:0; }
     .ch-secret-btn { background:none; border:none; color:rgba(255,255,255,0.4); font-size:1.1rem; cursor:pointer; padding:4px; border-radius:50%; transition:all 0.2s; display:flex; align-items:center; justify-content:center; }
@@ -308,7 +327,94 @@ function _renderMessage(msg, msgId, msgsContainer) {
     }
     
     bubble.appendChild(textEl);
+
+    // Link previews (Microlink)
+    if (!msg.isLocked && !msg.isDistorted && !msg.viewOnce) {
+      const urlRegex = /(https?:\/\/[^\s]+)/g;
+      const urls = msg.text.match(urlRegex);
+      if (urls && urls.length > 0) {
+        const linkUrl = urls[0];
+        const previewEl = _el('div', { className: 'ch-lp-wrapper' });
+        previewEl.innerHTML = `<div style="font-size:0.75rem; color:rgba(255,255,255,0.4); padding:8px;">Cargando vista previa...</div>`;
+        bubble.appendChild(previewEl);
+        
+        fetch(`https://api.microlink.io?url=${encodeURIComponent(linkUrl)}`)
+          .then(r => r.json())
+          .then(data => {
+            if (data.status === 'success' && data.data) {
+               const d = data.data;
+               previewEl.innerHTML = `
+                 <a href="${d.url}" target="_blank" class="ch-lp-card" onclick="event.stopPropagation()">
+                   ${d.image ? `<img src="${d.image.url}" class="ch-lp-img">` : ''}
+                   <div class="ch-lp-info">
+                     <div class="ch-lp-title">${d.title || d.publisher || 'Enlace'}</div>
+                     <div class="ch-lp-desc">${d.description ? d.description.slice(0, 60) + '...' : ''}</div>
+                     <div class="ch-lp-domain">${d.publisher || new URL(d.url).hostname}</div>
+                   </div>
+                 </a>
+               `;
+            } else {
+               previewEl.remove();
+            }
+          }).catch(() => previewEl.remove());
+      }
+    }
   }
+
+  // --- Reacciones ---
+  const reactionsWrap = _el('div', { className: 'ch-reactions-wrap' });
+  if (msg.reactions) {
+    const counts = {};
+    const myReactions = {};
+    for (let uid in msg.reactions) {
+      const r = msg.reactions[uid];
+      counts[r] = (counts[r] || 0) + 1;
+      if (uid === _currentUser.uid) myReactions[r] = true;
+    }
+    for (let r in counts) {
+      const rEl = _el('div', { className: 'ch-reaction', innerHTML: `<span>${r}</span><span class="ch-reaction-count">${counts[r]}</span>` });
+      if (myReactions[r]) {
+        rEl.style.borderColor = 'var(--chat-accent, #00f5d4)';
+        rEl.style.background = 'rgba(0,245,212,0.1)';
+      }
+      rEl.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const refPath = `messages/${_currentConvId}/${msgId}/reactions/${_currentUser.uid}`;
+        const { set } = await import('../firebase.js');
+        if (myReactions[r]) {
+          await set(ref(db, refPath), null);
+        } else {
+          await set(ref(db, refPath), r);
+        }
+      });
+      reactionsWrap.appendChild(rEl);
+    }
+  }
+  wrapper.appendChild(reactionsWrap);
+
+  // Reaction picker
+  const EMOJIS = ['👍','❤️','😂','😮','😢','🙏'];
+  const picker = _el('div', { className: 'ch-emoji-picker' });
+  EMOJIS.forEach(emoji => {
+    const opt = _el('span', { className: 'ch-emoji-opt', textContent: emoji });
+    opt.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      picker.classList.remove('visible');
+      const refPath = `messages/${_currentConvId}/${msgId}/reactions/${_currentUser.uid}`;
+      const currentR = msg.reactions && msg.reactions[_currentUser.uid];
+      const { set } = await import('../firebase.js');
+      if (currentR === emoji) await set(ref(db, refPath), null);
+      else await set(ref(db, refPath), emoji);
+    });
+    picker.appendChild(opt);
+  });
+  bubble.appendChild(picker);
+
+  let pressTimer;
+  bubble.addEventListener('touchstart', () => { pressTimer = setTimeout(() => picker.classList.add('visible'), 500); }, { passive: true });
+  bubble.addEventListener('touchend', () => { clearTimeout(pressTimer); });
+  bubble.addEventListener('touchcancel', () => { clearTimeout(pressTimer); });
+  bubble.addEventListener('dblclick', () => picker.classList.toggle('visible'));
 
   // Time
   if (msg.isEdited) {
