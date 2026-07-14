@@ -66,7 +66,7 @@ async function loadAuthModule() {
     return authModule;
 }
 async function loadChatModule() {
-    if (!chatModule) chatModule = await import('./chat/chat.js?v=6');
+    if (!chatModule) chatModule = await import('./chat/chat.js?v=7');
     return chatModule;
 }
 async function loadLayoutModule() {
@@ -201,44 +201,23 @@ async function initChatUI(user, hideSidebar = false) {
     }
 }
 
-// ── Hardware Back Button Handling ──────────────────────────
-function _handleHardwareBack(e) {
-    // 1. Close Modals
+// ── History API Back Button Handling ───────────────────────
+history.replaceState({ view: 'sidebar' }, "Sidebar", "");
+
+window.addEventListener('popstate', (e) => {
     const modals = document.querySelectorAll('.nc-overlay, .pf-overlay, .sc-tutorial-overlay');
     if (modals.length > 0) {
+        history.pushState(e.state || { view: 'sidebar' }, document.title, window.location.href);
         const lastModal = modals[modals.length - 1];
-        lastModal.click(); // Most modals close on overlay click
-        if (lastModal.parentNode) lastModal.remove(); // Force remove if click didn't work
+        lastModal.click();
+        if (lastModal.parentNode) lastModal.remove();
         return;
     }
 
-    // 2. Close Chat and return to Sidebar
-    if (state.currentLayer === 'chat' && state.currentConvId) {
-        const backBtn = document.querySelector('.ch-back');
-        if (backBtn) {
-            backBtn.click();
-            return;
+    if (!e.state || e.state.view !== 'conversation') {
+        if (typeof window._internalCloseChat === 'function' && state.currentConvId) {
+            window._internalCloseChat();
         }
-    }
-
-    // 3. Exit App
-    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
-        window.Capacitor.Plugins.App.exitApp();
-    }
-}
-
-// Fallback for Cordova / older Capacitor
-document.addEventListener('backbutton', (e) => {
-    e.preventDefault();
-    _handleHardwareBack(e);
-});
-
-// Primary for Capacitor 3+
-document.addEventListener('DOMContentLoaded', () => {
-    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
-        window.Capacitor.Plugins.App.addListener('backButton', ({ canGoBack }) => {
-            _handleHardwareBack();
-        });
     }
 });
 
@@ -257,7 +236,10 @@ async function openConversation(convId) {
     state.layout.chatAreaEl.innerHTML = '';
     state.layout.showChat();
 
-    const closeChat = () => {
+    // Push state for hardware back button
+    history.pushState({ view: 'conversation' }, "Chat", "");
+
+    window._internalCloseChat = () => {
         chat.destroyChat();
         state.layout.chatAreaEl.innerHTML = `
             <div class="sc-chat-empty">
@@ -270,11 +252,11 @@ async function openConversation(convId) {
     };
 
     chat.initChat(state.layout.chatAreaEl, state.currentUser, convId, {
-        onBack: closeChat,
+        onBack: () => history.back(),
         onPanic: async () => {
             const { deleteConversation } = await import('./chat/messages.js');
             await deleteConversation(convId);
-            closeChat();
+            history.back();
         }
     });
 }
