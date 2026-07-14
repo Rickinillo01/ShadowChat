@@ -274,7 +274,7 @@ export async function clearAllMedia() {
     for (const [convId, messages] of Object.entries(allConversations)) {
       for (const [msgId, msg] of Object.entries(messages)) {
         if (msg.type === 'image' || msg.type === 'video' || msg.type === 'audio') {
-          updates[\`messages/\${convId}/\${msgId}\`] = null;
+          updates[`messages/${convId}/${msgId}`] = null;
           count++;
         }
       }
@@ -282,7 +282,7 @@ export async function clearAllMedia() {
     
     if (count > 0) {
       await update(ref(db), updates);
-      alert(\`Se eliminaron \${count} mensajes multimedia con éxito.\`);
+      alert(`Se eliminaron ${count} mensajes multimedia con éxito.`);
     } else {
       alert('No se encontraron mensajes multimedia.');
     }
