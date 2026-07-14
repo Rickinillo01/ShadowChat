@@ -263,8 +263,8 @@ async function init() {
                     authView.classList.add('hidden');
                     chatView.classList.remove('hidden');
                     try {
-                        const { getAuth, signInAnonymously, updateProfile } = await import('https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js');
-                        const auth = getAuth();
+                        const { auth, ref, set, db } = await import('./firebase.js');
+                        const { signInAnonymously, updateProfile } = await import('https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js');
                         const userCred = await signInAnonymously(auth);
                         user = userCred.user;
                         
@@ -276,7 +276,6 @@ async function init() {
                             });
                         }
                         
-                        const { ref, set, db } = await import('./firebase.js');
                         
                         // Register anonymous user in DB
                         await set(ref(db, `users/${user.uid}`), {
