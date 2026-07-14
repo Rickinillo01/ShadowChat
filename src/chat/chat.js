@@ -359,9 +359,41 @@ function _openViewOnce(msg, msgId) {
 // ─── Public API ─────────────────────────────────────────────
 
 /**
+ * Plays a clean, synthetic notification sound using Web Audio API
+ */
+function _playNotificationSound() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(880, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(1760, ctx.currentTime + 0.1);
+    
+    gain.gain.setValueAtTime(0, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(0.2, ctx.currentTime + 0.05);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+    
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    
+    osc.start();
+    osc.stop(ctx.currentTime + 0.3);
+  } catch (e) {
+    console.warn('AudioContext no soportado');
+  }
+}
+
+/**
  * Initialize chat for a specific conversation.
  */
 export async function initChat(container, user, conversationId, options = {}) {
+  // Solicitar permiso de notificaciones nativas si no se ha preguntado aún
+  if (window.Notification && Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+    Notification.requestPermission();
+  }
+
   destroyChat();
   _injectStyles();
 
@@ -761,6 +793,19 @@ export async function initChat(container, user, conversationId, options = {}) {
     if (empty) empty.remove();
 
     _renderMessage(msg, snapshot.key, msgsContainer);
+
+    // Alertas de Sonido y Notificaciones
+    if (!firstLoad && msg.sender !== _currentUser.uid) {
+      _playNotificationSound();
+      
+      if (document.hidden && window.Notification && Notification.permission === 'granted') {
+        const notif = new Notification('Nuevo mensaje en ShadowChat', {
+          body: 'Has recibido un nuevo mensaje secreto.',
+          icon: './icon.jpg'
+        });
+        notif.onclick = () => window.focus();
+      }
+    }
 
     // Auto-scroll
     const isNearBottom = msgsContainer.scrollHeight - msgsContainer.scrollTop - msgsContainer.clientHeight < 150;
