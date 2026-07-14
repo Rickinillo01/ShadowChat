@@ -83,8 +83,7 @@ export async function sendMessage(conversationId, text, user, ttlMs, options = {
             app_id: "17d0128f-85bd-46e9-b575-e5cb865752a3",
             include_external_user_ids: otherUids,
             headings: { "en": user.displayName || "Nuevo mensaje", "es": user.displayName || "Nuevo mensaje" },
-            contents: { "en": msgObj.isLocked ? "🔒 Mensaje cifrado" : previewText, "es": msgObj.isLocked ? "🔒 Mensaje cifrado" : previewText },
-            web_url: 'https://rickinillo01.github.io/ShadowChat/'
+            contents: { "en": msgObj.isLocked ? "🔒 Mensaje cifrado" : previewText, "es": msgObj.isLocked ? "🔒 Mensaje cifrado" : previewText }
           })
         }).catch(e => console.warn('OneSignal send error:', e));
       }
