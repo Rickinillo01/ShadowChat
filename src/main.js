@@ -4,15 +4,21 @@ const authView = document.getElementById('auth-view');
 const chatView = document.getElementById('chat-view');
 
 // ── OneSignal Init ─────────────────────────────────────────
+function initNativeOneSignal() {
+    if (window.plugins && window.plugins.OneSignal) {
+        window.plugins.OneSignal.initialize("17d0128f-85bd-46e9-b575-e5cb865752a3");
+        window.plugins.OneSignal.Notifications.requestPermission(true).then((accepted) => {
+            console.log("User accepted notifications: " + accepted);
+        });
+    }
+}
+
 if (window.Capacitor && window.Capacitor.isNative) {
-    document.addEventListener("deviceready", () => {
-        if (window.plugins && window.plugins.OneSignal) {
-            window.plugins.OneSignal.initialize("17d0128f-85bd-46e9-b575-e5cb865752a3");
-            window.plugins.OneSignal.Notifications.requestPermission(true).then((accepted) => {
-                console.log("User accepted notifications: " + accepted);
-            });
-        }
-    }, false);
+    if (window.plugins && window.plugins.OneSignal) {
+        initNativeOneSignal();
+    } else {
+        document.addEventListener("deviceready", initNativeOneSignal, false);
+    }
 } else {
     window.OneSignalDeferred = window.OneSignalDeferred || [];
     OneSignalDeferred.push(async function(OneSignal) {
