@@ -4,7 +4,7 @@
 
 import { db, auth, ref, onValue, off, get, set } from '../firebase.js';
 import { formatTimestamp } from './messages.js';
-import { showAdminModal, clearAllMedia } from '../moderation/modPanel.js?v=15';
+import { showAdminModal, clearAllMedia } from '../moderation/modPanel.js?v=16';
 
 // State
 let _listeners = [];
@@ -238,6 +238,7 @@ async function _renderList(listEl) {
   for (const [id, conv] of convArr) {
     let name = await _getConvDisplayName(conv, id);
     
+    
     if (conv.isTemp) {
       if (conv.expiresAt && Date.now() > conv.expiresAt) {
         // Cleanup expired temporary conversation
@@ -245,10 +246,14 @@ async function _renderList(listEl) {
         set(ref(db, `messages/${id}`), null).catch(()=>{});
         continue;
       }
-      name = `⏳ ${name}`;
     }
     
     if (_searchTerm && !name.toLowerCase().includes(_searchTerm.toLowerCase())) continue;
+
+    if (conv.isTemp) {
+      name = `<span style="color: #ef4444; text-shadow: 0 0 8px rgba(239, 68, 68, 0.4);">⏳ ${name}</span>`;
+    }
+    
     filtered.push({ id, conv, name });
   }
 
