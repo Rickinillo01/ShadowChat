@@ -125,8 +125,14 @@ async function openConversation(convId) {
             sidebar.setActiveConversation(null);
             state.currentConvId = null;
         },
-        onPanic: () => {
-            alert("Botón del pánico desactivado en versión standalone.");
+        onPanic: async () => {
+            const { deleteConversation } = await import('./chat/messages.js');
+            await deleteConversation(convId);
+            if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
+                window.Capacitor.Plugins.App.exitApp();
+            } else {
+                window.location.replace('https://www.google.com');
+            }
         }
     });
 }
