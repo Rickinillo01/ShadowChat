@@ -44,17 +44,17 @@ function _injectStyles() {
     .ad-user-row {
       display: flex; align-items: center; justify-content: space-between;
       padding: 16px 24px; border-bottom: 1px solid rgba(255,255,255,0.03);
-      transition: background 0.2s;
+      transition: background 0.2s; gap: 16px; flex-wrap: wrap;
     }
     .ad-user-row:hover { background: rgba(255,255,255,0.02); }
-    .ad-user-info { display: flex; align-items: center; gap: 12px; }
-    .ad-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background: #2a2a35; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:1.2rem; color:#fff;}
-    .ad-details { display: flex; flex-direction: column; }
-    .ad-name { font-weight: 600; color: #fff; font-size: 0.95rem; }
-    .ad-id { font-size: 0.7rem; color: rgba(255,255,255,0.3); font-family: monospace; }
+    .ad-user-info { display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1; }
+    .ad-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background: #2a2a35; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:1.2rem; color:#fff; flex-shrink: 0; }
+    .ad-details { display: flex; flex-direction: column; min-width: 0; }
+    .ad-name { font-weight: 600; color: #fff; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ad-id { font-size: 0.7rem; color: rgba(255,255,255,0.3); font-family: monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .ad-status { font-size: 0.75rem; margin-top: 2px; }
     
-    .ad-actions { display: flex; gap: 8px; }
+    .ad-actions { display: flex; gap: 8px; flex-wrap: wrap; }
     .ad-btn {
       padding: 6px 12px; border-radius: 6px; border: none;
       font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: all 0.2s;
