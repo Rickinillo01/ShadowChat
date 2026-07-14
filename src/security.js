@@ -14,6 +14,9 @@
             -moz-user-select: none;
             -ms-user-select: none;
             user-select: none;
+            -webkit-touch-callout: none;
+            -webkit-user-drag: none;
+            -webkit-tap-highlight-color: transparent;
         }
         
         #security-curtain {
@@ -56,6 +59,10 @@
                 curtain.classList.remove('active');
             }, 300);
         }
+    });
+
+    window.addEventListener('pagehide', () => {
+        curtain.classList.add('active');
     });
 
     // 3. Prevent Print Screen (Windows)
