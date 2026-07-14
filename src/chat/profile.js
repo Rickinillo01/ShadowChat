@@ -44,7 +44,7 @@ function _injectStyles() {
     .pf-body { padding: 24px 20px; display: flex; flex-direction: column; align-items: center; gap: 20px; overflow-y: auto; }
     .pf-avatar-wrap {
       position: relative; width: 120px; height: 120px; border-radius: 50%;
-      cursor: pointer; overflow: hidden;
+      cursor: pointer; overflow: hidden; flex-shrink: 0;
     }
     .pf-avatar-img {
       width: 120px; height: 120px; border-radius: 50%; object-fit: cover;
@@ -66,9 +66,9 @@ function _injectStyles() {
     .pf-avatar-wrap:hover .pf-avatar-overlay { opacity: 1; }
     .pf-avatar-overlay svg { width: 24px; height: 24px; }
     .pf-uploading {
-      font-size: 0.8rem; color: #00f5d4; text-align: center;
+      font-size: 0.8rem; color: #00f5d4; text-align: center; flex-shrink: 0;
     }
-    .pf-field { width: 100%; }
+    .pf-field { width: 100%; flex-shrink: 0; }
     .pf-label { font-size: 0.78rem; color: rgba(255,255,255,0.35); margin-bottom: 6px; }
     .pf-input {
       width: 100%; padding: 10px 12px; border-radius: 10px;
@@ -82,7 +82,7 @@ function _injectStyles() {
       width: 100%; padding: 10px; border-radius: 10px; border: none;
       background: linear-gradient(135deg, #a855f7, #6366f1); color: #fff;
       font-size: 0.88rem; font-weight: 600; font-family: 'Inter', sans-serif;
-      cursor: pointer; transition: all 0.2s; margin-top: 4px;
+      cursor: pointer; transition: all 0.2s; margin-top: 4px; flex-shrink: 0;
     }
     .pf-save-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(168,85,247,0.3); }
     .pf-save-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
@@ -91,7 +91,7 @@ function _injectStyles() {
       width: 100%; padding: 10px; border-radius: 10px;
       border: 1px solid rgba(247,37,133,0.25); background: transparent;
       color: #f72585; font-size: 0.85rem; font-weight: 500;
-      font-family: 'Inter', sans-serif; cursor: pointer; transition: all 0.2s;
+      font-family: 'Inter', sans-serif; cursor: pointer; transition: all 0.2s; flex-shrink: 0;
     }
     .pf-logout-btn:hover { background: rgba(247,37,133,0.1); }
     .pf-msg {

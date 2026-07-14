@@ -81,7 +81,7 @@ async function loadNewConvModule() {
     return newConvModule;
 }
 async function loadProfileModule() {
-    if (!profileModule) profileModule = await import('./chat/profile.js?v=5');
+    if (!profileModule) profileModule = await import('./chat/profile.js?v=6');
     return profileModule;
 }
 
