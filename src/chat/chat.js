@@ -287,7 +287,14 @@ function _renderMessage(msg, msgId, msgsContainer) {
       displayText = msg.distortedText;
     }
 
-    const textEl = _el('div', { className: 'ch-msg-text', textContent: displayText });
+    const textEl = _el('div', { className: 'ch-msg-text' });
+    if (msg.isLocked || msg.isDistorted) {
+      textEl.textContent = displayText;
+    } else {
+      let escaped = displayText.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+      escaped = escaped.replace(/(https?:\/\/[^\s<]+[^<.,:;"')\]\s])/g, '<a href="$1" target="_blank" style="color:var(--chat-accent, #00f5d4); text-decoration:underline;" onclick="event.stopPropagation()">$1</a>');
+      textEl.innerHTML = escaped;
+    }
     
     if (msg.isLocked) {
       textEl.style.cursor = 'pointer';
@@ -331,7 +338,7 @@ function _renderMessage(msg, msgId, msgsContainer) {
 
     // Link previews (Microlink)
     if (!msg.isLocked && !msg.isDistorted && !msg.viewOnce) {
-      const urlRegex = /(https?:\/\/[^\s]+)/g;
+      const urlRegex = /(https?:\/\/[^\s<]+[^<.,:;"')\]\s])/g;
       const urls = msg.text.match(urlRegex);
       if (urls && urls.length > 0) {
         const linkUrl = urls[0];
@@ -342,8 +349,12 @@ function _renderMessage(msg, msgId, msgsContainer) {
         if (!_linkPreviewCache[linkUrl]) {
           _linkPreviewCache[linkUrl] = fetch(`https://api.microlink.io?url=${encodeURIComponent(linkUrl)}`)
             .then(r => r.json())
-            .then(data => (data.status === 'success' && data.data) ? data.data : null)
-            .catch(() => null);
+            .then(data => {
+               if (data.status === 'success' && data.data) return data.data;
+               console.warn("Microlink API Error:", data);
+               return null;
+            })
+            .catch(e => { console.warn("Microlink Fetch Error:", e); return null; });
         }
 
         _linkPreviewCache[linkUrl].then(d => {
