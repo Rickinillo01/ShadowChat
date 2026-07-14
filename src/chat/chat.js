@@ -102,7 +102,17 @@ function _injectStyles() {
     .ch-input-area { position:relative; z-index:2; background:#0d0d15; border-top:1px solid rgba(255,255,255,0.06); padding:10px 16px; display:flex; flex-direction:column; gap:8px; flex-shrink:0; }
     .ch-secret-btn { background:none; border:none; color:rgba(255,255,255,0.4); font-size:1.1rem; cursor:pointer; padding:4px; border-radius:50%; transition:all 0.2s; display:flex; align-items:center; justify-content:center; }
     .ch-secret-btn:hover { background:rgba(255,255,255,0.1); }
-    @media(max-width:768px) { .ch-msg { max-width:85%; } }
+    
+    .ch-drawer-wrap { position:relative; display:flex; align-items:center; }
+    .ch-drawer-btn { display:none; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08); color:rgba(255,255,255,0.6); border-radius:8px; width:32px; height:32px; align-items:center; justify-content:center; cursor:pointer; transition:all 0.2s; }
+    .ch-drawer-content { display:flex; gap:4px; align-items:center; }
+    
+    @media(max-width:768px) { 
+      .ch-msg { max-width:85%; } 
+      .ch-drawer-btn { display:flex; }
+      .ch-drawer-content { position:absolute; bottom:100%; left:50%; transform:translateX(-50%) translateY(10px); background:#16162a; border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:6px; box-shadow:0 -4px 20px rgba(0,0,0,0.3); opacity:0; pointer-events:none; transition:all 0.2s ease; flex-direction:row; margin-bottom:8px; }
+      .ch-drawer-wrap.open .ch-drawer-content { opacity:1; pointer-events:auto; transform:translateX(-50%) translateY(0); }
+    }
     @keyframes chMsgIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
     .ch-msg.sent { align-self:flex-end; align-items:flex-end; }
     .ch-msg.received { align-self:flex-start; align-items:flex-start; }
@@ -984,10 +994,36 @@ export async function initChat(container, user, conversationId, options = {}) {
     maskBtn.style.color = _isDistorted ? '#00f5d4' : '';
   });
 
+  const drawerWrap = _el('div', { className: 'ch-drawer-wrap' });
+  const drawerBtn = _el('button', { className: 'ch-drawer-btn', innerHTML: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>` });
+  const drawerContent = _el('div', { className: 'ch-drawer-content' });
+  
+  drawerContent.appendChild(attachWrap);
+  drawerContent.appendChild(maskBtn);
+  drawerContent.appendChild(lockBtn);
+  
+  drawerWrap.appendChild(drawerBtn);
+  drawerWrap.appendChild(drawerContent);
+  
+  drawerBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    drawerWrap.classList.toggle('open');
+    if (drawerWrap.classList.contains('open')) {
+      drawerBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>`;
+    } else {
+      drawerBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`;
+    }
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!drawerWrap.contains(e.target)) {
+      drawerWrap.classList.remove('open');
+      drawerBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`;
+    }
+  });
+
   inputRow.appendChild(ttlBtn);
-  inputRow.appendChild(attachWrap);
-  inputRow.appendChild(maskBtn);
-  inputRow.appendChild(lockBtn);
+  inputRow.appendChild(drawerWrap);
   inputRow.appendChild(textInput);
   inputRow.appendChild(sendBtn);
 
