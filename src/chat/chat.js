@@ -1018,19 +1018,29 @@ export async function initChat(container, user, conversationId, options = {}) {
   wrap.appendChild(inputArea);
   container.appendChild(wrap);
 
+  let _isSending = false;
+
   // ── Send logic ──
   async function _send() {
-    if (isMuted) return;
+    if (isMuted || _isSending) return;
+    
     const text = textInput.value.trim();
 
     let pinHash = null;
     if (_isLocked && text) {
+      // Small timeout to prevent Enter keydown from re-triggering immediately
+      await new Promise(r => setTimeout(r, 10)); 
+      
+      _isSending = true;
       const pin = prompt("Introduce un PIN de 4 dígitos para bloquear este mensaje:");
       if (!pin || pin.length < 4) {
         alert("PIN inválido. El mensaje no se enviará.");
+        _isSending = false;
         return;
       }
       pinHash = btoa(pin); // Simple encode for covert ops
+    } else {
+      _isSending = true;
     }
 
     let distText = null;
@@ -1040,7 +1050,10 @@ export async function initChat(container, user, conversationId, options = {}) {
     }
 
     if (_editingMsgId) {
-      if (!text) return;
+      if (!text) {
+        _isSending = false;
+        return;
+      }
       try {
         await update(ref(db, `messages/${conversationId}/${_editingMsgId}`), {
           text: text,
@@ -1055,6 +1068,7 @@ export async function initChat(container, user, conversationId, options = {}) {
       } catch(e) {
         console.error("Edit error:", e);
       }
+      _isSending = false;
       return;
     }
 
@@ -1105,6 +1119,7 @@ export async function initChat(container, user, conversationId, options = {}) {
         distortedText: distText
       });
     } else {
+      _isSending = false;
       return; // Nothing to send
     }
 
@@ -1119,6 +1134,8 @@ export async function initChat(container, user, conversationId, options = {}) {
     textInput.value = '';
     textInput.style.height = 'auto';
     if (typeof _updateSendBtn === 'function') _updateSendBtn();
+    
+    _isSending = false;
   }
 
   // ── Firebase Listeners ──

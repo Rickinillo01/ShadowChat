@@ -22,6 +22,10 @@ export function createMessage(text, user, ttlMs, options = {}) {
     mediaThumbnail: options.mediaThumbnail || null,
     viewOnce: options.viewOnce || false,
     replyTo: options.replyTo || null,
+    isLocked: options.isLocked || false,
+    pinHash: options.pinHash || null,
+    isDistorted: options.isDistorted || false,
+    distortedText: options.distortedText || null,
     viewedBy: {},
     ttl: ttlMs,
     expiresAt: ttlMs > 0 ? now + ttlMs : null
