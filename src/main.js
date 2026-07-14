@@ -17,10 +17,9 @@ function initNativeOneSignal() {
     }
 }
 
-// En Capacitor 3+, window.Capacitor.isNative ya no existe, usamos getPlatform() o simplemente comprobamos si existe el plugin.
-const isNativeApp = window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform() !== 'web';
+const isNativeApp = !!(window.Capacitor && window.Capacitor.isNative);
 
-if (isNativeApp || (window.plugins && window.plugins.OneSignal)) {
+if (isNativeApp) {
     if (window.plugins && window.plugins.OneSignal) {
         initNativeOneSignal();
     } else {
@@ -82,7 +81,7 @@ async function loadNewConvModule() {
     return newConvModule;
 }
 async function loadProfileModule() {
-    if (!profileModule) profileModule = await import('./chat/profile.js?v=4');
+    if (!profileModule) profileModule = await import('./chat/profile.js?v=5');
     return profileModule;
 }
 
@@ -109,8 +108,16 @@ async function initChatUI(user, hideSidebar = false) {
     state.currentUser = user;
 
     // Bind OneSignal to Firebase UID
-    if ((isNativeApp || (window.plugins && window.plugins.OneSignal)) && window.plugins && window.plugins.OneSignal) {
-        window.plugins.OneSignal.login(user.uid);
+    if (isNativeApp) {
+        if (window.plugins && window.plugins.OneSignal) {
+            window.plugins.OneSignal.login(user.uid);
+        } else {
+            document.addEventListener("deviceready", () => {
+                if (window.plugins && window.plugins.OneSignal) {
+                    window.plugins.OneSignal.login(user.uid);
+                }
+            }, false);
+        }
     } else if (window.OneSignalDeferred) {
         window.OneSignalDeferred.push(function(OneSignal) {
             OneSignal.login(user.uid);

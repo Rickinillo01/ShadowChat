@@ -21,7 +21,7 @@ function _injectStyles() {
     @keyframes pfSlideIn { from { opacity: 0; transform: scale(0.95) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
     .pf-modal {
       background: #11111b; border: 1px solid rgba(168,85,247,0.2);
-      border-radius: 16px; width: 90%; max-width: 400px;
+      border-radius: 16px; width: 90%; max-width: 400px; max-height: 90vh;
       box-sizing: border-box;
       display: flex; flex-direction: column; overflow: hidden;
       animation: pfSlideIn 0.3s ease; font-family: 'Inter', sans-serif;
@@ -41,7 +41,7 @@ function _injectStyles() {
       align-items: center; justify-content: center; transition: all 0.2s;
     }
     .pf-close:hover { background: rgba(255,255,255,0.1); color: #fff; }
-    .pf-body { padding: 24px 20px; display: flex; flex-direction: column; align-items: center; gap: 20px; }
+    .pf-body { padding: 24px 20px; display: flex; flex-direction: column; align-items: center; gap: 20px; overflow-y: auto; }
     .pf-avatar-wrap {
       position: relative; width: 120px; height: 120px; border-radius: 50%;
       cursor: pointer; overflow: hidden;
