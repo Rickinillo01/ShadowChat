@@ -321,7 +321,24 @@ export function initSidebar(sidebarEl, currentUser, callbacks) {
       try {
         const inviteId = "inv_" + Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
         const expiresAt = Date.now() + 60 * 60 * 1000; // 1 hour
+        const inviteUrl = window.location.origin + window.location.pathname + "?invite=" + inviteId;
         
+        // Copy to clipboard FIRST (must happen immediately after click on mobile)
+        try {
+          await navigator.clipboard.writeText(inviteUrl);
+        } catch(e) {
+          // Fallback if clipboard API fails
+          const textArea = document.createElement("textarea");
+          textArea.value = inviteUrl;
+          textArea.style.position = "fixed";
+          document.body.appendChild(textArea);
+          textArea.focus();
+          textArea.select();
+          document.execCommand('copy');
+          document.body.removeChild(textArea);
+        }
+        
+        // Then save to DB
         await set(ref(db, `conversations/${inviteId}`), {
           type: 'private',
           members: { [currentUser.uid]: true },
@@ -329,8 +346,6 @@ export function initSidebar(sidebarEl, currentUser, callbacks) {
           createdAt: Date.now()
         });
 
-        const inviteUrl = window.location.origin + window.location.pathname + "?invite=" + inviteId;
-        await navigator.clipboard.writeText(inviteUrl);
         alert("Enlace copiado. Compártelo para iniciar un chat anónimo de 60 minutos:\n\n" + inviteUrl);
       } catch (err) {
         alert("Error al generar enlace: " + err.message);
