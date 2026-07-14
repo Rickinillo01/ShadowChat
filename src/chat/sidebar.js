@@ -4,7 +4,7 @@
 
 import { db, auth, ref, onValue, off, get, set } from '../firebase.js';
 import { formatTimestamp } from './messages.js';
-import { showAdminModal, clearAllMedia } from '../moderation/modPanel.js';
+import { showAdminModal, clearAllMedia } from '../moderation/modPanel.js?v=15';
 
 // State
 let _listeners = [];
