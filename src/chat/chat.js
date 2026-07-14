@@ -9,11 +9,11 @@ import {
 import {
   sendMessage, startCleanupInterval, stopCleanupInterval,
   formatTimestamp, getTTLOptions, getRemainingTime, markViewOnce, checkAllViewed
-} from './messages.js';
+} from './messages.js?v=3';
 
 import {
   uploadMedia, getMediaType, validateFile, formatFileSize, generateThumbnail
-} from './media.js';
+} from './media.js?v=3';
 
 import { state } from '../main.js';
 
@@ -39,6 +39,7 @@ const _linkPreviewCache = {};
 const ICONS = {
   back: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>`,
   gear: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`,
+  timer: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="14" r="8"/><path d="M12 10v4l2 2"/><line x1="10" y1="2" x2="14" y2="2"/><line x1="12" y1="2" x2="12" y2="6"/></svg>`,
   bolt: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`,
   send: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>`,
   mic: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg>`,
@@ -959,7 +960,7 @@ export async function initChat(container, user, conversationId, options = {}) {
     convName.textContent = 'Error';
   }
 
-  const gearBtn = _el('button', { className: 'ch-hdr-btn', innerHTML: ICONS.gear, title: 'TTL' });
+  const timerBtn = _el('button', { className: 'ch-hdr-btn ch-timer-btn', innerHTML: ICONS.timer, title: 'Autodestrucción: ' + getTTLOptions()[_currentTTLIndex].label });
   const panicBtn = _el('button', { className: 'ch-hdr-btn ch-panic', innerHTML: ICONS.bolt, title: 'Pánico' });
   panicBtn.addEventListener('click', () => { if (_panicHandler) _panicHandler(); });
 
@@ -988,14 +989,14 @@ export async function initChat(container, user, conversationId, options = {}) {
     o.addEventListener('click', () => {
       _currentTTLIndex = i;
       ttlDrop.classList.remove('open');
-      ttlBtn.textContent = opt.label;
+      timerBtn.title = 'Autodestrucción: ' + opt.label;
       ttlDrop.querySelectorAll('.ch-ttl-option').forEach((el, j) => el.classList.toggle('active', j === i));
     });
     ttlDrop.appendChild(o);
   });
   ttlDropWrap.appendChild(ttlDrop);
-  ttlDropWrap.appendChild(gearBtn);
-  gearBtn.addEventListener('click', () => ttlDrop.classList.toggle('open'));
+  ttlDropWrap.appendChild(timerBtn);
+  timerBtn.addEventListener('click', () => ttlDrop.classList.toggle('open'));
 
   header.appendChild(backBtn);
   header.appendChild(headerInfoWrap);
@@ -1024,12 +1025,6 @@ export async function initChat(container, user, conversationId, options = {}) {
   // ── Input Area ──
   const inputArea = _el('div', { className: 'ch-input-area' });
   const inputRow = _el('div', { className: 'ch-input-row' });
-
-  const ttlBtn = _el('button', { className: 'ch-ttl-btn', textContent: getTTLOptions()[_currentTTLIndex].label });
-  ttlBtn.addEventListener('click', () => {
-    _currentTTLIndex = (_currentTTLIndex + 1) % getTTLOptions().length;
-    ttlBtn.textContent = getTTLOptions()[_currentTTLIndex].label;
-  });
 
   // Attach
   const attachWrap = _el('div', { className: 'ch-attach-wrap' });
@@ -1320,7 +1315,6 @@ export async function initChat(container, user, conversationId, options = {}) {
     }
   });
 
-  inputRow.appendChild(ttlBtn);
   inputRow.appendChild(drawerWrap);
   inputRow.appendChild(textInput);
   
@@ -1328,7 +1322,31 @@ export async function initChat(container, user, conversationId, options = {}) {
   const cameraInput = _el('input', { type: 'file', accept: 'image/*', capture: 'environment', style: 'display:none' });
   
   cameraBtn.addEventListener('click', () => {
-    cameraInput.click();
+    if (window.navigator && window.navigator.camera) {
+      window.navigator.camera.getPicture((imageData) => {
+        const byteCharacters = atob(imageData);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], {type: 'image/jpeg'});
+        const file = new File([blob], `Camera_${Date.now()}.jpg`, { type: 'image/jpeg' });
+        
+        _fileType = 'image';
+        _handleFileSelection(file, 'image');
+      }, (err) => {
+        console.warn("Camera cancelled or failed:", err);
+      }, {
+        quality: 70,
+        destinationType: 0, // DATA_URL
+        targetWidth: 1200,
+        correctOrientation: true,
+        saveToPhotoAlbum: false
+      });
+    } else {
+      cameraInput.click();
+    }
   });
   
   cameraInput.addEventListener('change', async () => {
