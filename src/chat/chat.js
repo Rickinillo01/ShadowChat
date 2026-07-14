@@ -143,8 +143,8 @@ function _injectStyles() {
     .ch-input-row { display:flex; align-items:center; gap:8px; }
     .ch-ttl-btn { padding:4px 10px; border-radius:16px; border:1px solid rgba(0,245,212,0.2); background:transparent; color:#00f5d4; font-size:0.72rem; font-weight:600; cursor:pointer; transition:all 0.2s; flex-shrink:0; white-space:nowrap; }
     .ch-ttl-btn:hover { background:rgba(0,245,212,0.08); }
-    .ch-attach-wrap { position:relative; display:flex; align-items:center; justify-content:center; }
-    .ch-attach-btn { background:none; border:none; color:rgba(255,255,255,0.4); cursor:pointer; padding:6px; display:flex; transition:color 0.2s; }
+    .ch-attach-wrap { position:relative; display:flex; align-items:center; justify-content:center; width:32px; height:32px; }
+    .ch-attach-btn { background:none; border:none; color:rgba(255,255,255,0.4); cursor:pointer; padding:4px; border-radius:50%; transition:all 0.2s; display:flex; align-items:center; justify-content:center; width:100%; height:100%; }
     .ch-attach-btn:hover { color:#00f5d4; }
     .ch-input { flex:1; padding:10px 14px; border-radius:20px; border:1px solid rgba(255,255,255,0.06); background:rgba(255,255,255,0.04); color:#e2e8f0; font-size:0.88rem; font-family:'Inter',sans-serif; outline:none; resize:none; max-height:100px; line-height:1.4; transition:border-color 0.2s; }
     .ch-input:focus { border-color:rgba(0,245,212,0.25); }
