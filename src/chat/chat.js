@@ -59,7 +59,7 @@ function _injectStyles() {
   const s = document.createElement('style');
   s.id = 'shadowchat-styles';
   s.textContent = `
-    .ch-wrap { height:100vh; display:flex; flex-direction:column; background:var(--ch-bg, #0a0a0f); color:var(--ch-text, #e0e0e0); font-family:'Inter',sans-serif; overflow:hidden; position:relative; }
+    .ch-wrap { height:100%; display:flex; flex-direction:column; background:var(--ch-bg, #0a0a0f); color:var(--ch-text, #e0e0e0); font-family:'Inter',sans-serif; overflow:hidden; position:relative; }
     .ch-header { display:flex; align-items:center; gap:10px; padding:12px 16px; background:#0d0d15; border-bottom:1px solid rgba(255,255,255,0.06); flex-shrink:0; }
     .ch-back { display:none; background:none; border:none; color:rgba(255,255,255,0.6); cursor:pointer; padding:4px; transition:color 0.2s; }
     .ch-back:hover { color:#00f5d4; }
@@ -1322,33 +1322,9 @@ export async function initChat(container, user, conversationId, options = {}) {
   const cameraInput = _el('input', { type: 'file', accept: 'image/*', capture: 'environment', style: 'display:none' });
   
   cameraBtn.addEventListener('click', () => {
-    if (window.navigator && window.navigator.camera) {
-      window.navigator.camera.getPicture(async (imageUri) => {
-        try {
-            const webPath = (window.Capacitor && window.Capacitor.convertFileSrc) 
-                ? window.Capacitor.convertFileSrc(imageUri) 
-                : imageUri;
-            const response = await fetch(webPath);
-            const blob = await response.blob();
-            const file = new File([blob], `Camera_${Date.now()}.jpg`, { type: 'image/jpeg' });
-            
-            _fileType = 'image';
-            _handleFileSelection(file, 'image');
-        } catch(e) {
-            console.error("Camera process error:", e);
-        }
-      }, (err) => {
-        console.warn("Camera cancelled or failed:", err);
-      }, {
-        quality: 70,
-        destinationType: 1, // FILE_URI (1) instead of DATA_URL (0) to prevent RAM crashes
-        targetWidth: 1200,
-        correctOrientation: true,
-        saveToPhotoAlbum: false
-      });
-    } else {
-      cameraInput.click();
-    }
+    // HTML5 native camera is 100% reliable on Android WebViews, requires no Cordova plugins, 
+    // handles permissions automatically, and avoids OOM crashes.
+    cameraInput.click();
   });
   
   cameraInput.addEventListener('change', async () => {
