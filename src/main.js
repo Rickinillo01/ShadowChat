@@ -224,9 +224,13 @@ async function init() {
     // 2. Play intro animation
     setTimeout(async () => {
         try {
+            document.getElementById('error-overlay').style.display = 'block';
+            document.getElementById('error-overlay').innerText += "Starting init...\n";
             const authMod = await loadAuthModule();
+            document.getElementById('error-overlay').innerText += "Loaded auth module.\n";
 
             authMod.checkExistingAuth(async (user) => {
+                document.getElementById('error-overlay').innerText += "checkExistingAuth callback called! User: " + (user ? user.uid : "null") + "\n";
                 transitionToChatLayer();
 
                 // Check for ?invite=XYZ

@@ -442,11 +442,15 @@ export function initAuth(container, onAuthSuccess) {
  * @param {Function} onAuthSuccess - Called with Firebase user if already authenticated.
  */
 export function checkExistingAuth(onAuthSuccess) {
+  document.getElementById('error-overlay').innerText += "checkExistingAuth() entered.\n";
   const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    document.getElementById('error-overlay').innerText += "onAuthStateChanged fired! User: " + (user ? user.uid : "null") + "\n";
     unsubscribe(); // Only need to check once
     if (user) {
       try {
+        document.getElementById('error-overlay').innerText += "Getting user data from DB...\n";
         const snap = await get(ref(db, `users/${user.uid}`));
+        document.getElementById('error-overlay').innerText += "Got user data.\n";
         if (snap.exists()) {
           const udata = snap.val();
           if (udata.deleted) throw new Error('account-deleted');
