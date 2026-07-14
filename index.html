@@ -7,6 +7,23 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>ShadowChat</title>
+    <style>
+        #error-overlay {
+            position: fixed; top: 0; left: 0; right: 0; background: red; color: white;
+            z-index: 999999; padding: 10px; font-family: monospace; display: none;
+            white-space: pre-wrap; word-break: break-all;
+        }
+    </style>
+    <script>
+        window.addEventListener('error', function(e) {
+            var el = document.getElementById('error-overlay');
+            if(el) { el.style.display = 'block'; el.innerText += e.message + '\n' + e.filename + ':' + e.lineno + '\n'; }
+        });
+        window.addEventListener('unhandledrejection', function(e) {
+            var el = document.getElementById('error-overlay');
+            if(el) { el.style.display = 'block'; el.innerText += 'Promise rejection: ' + (e.reason && e.reason.message ? e.reason.message : e.reason) + '\n'; }
+        });
+    </script>
     <meta name="description" content="Secure encrypted messaging platform.">
     <meta name="keywords" content="chat, secure, messaging">
     <meta name="author" content="ShadowChat">
@@ -31,6 +48,7 @@
     <link rel="stylesheet" href="src/style.css">
 </head>
 <body>
+    <div id="error-overlay"></div>
     <div id="app">
         <!-- Intro Layer -->
         <div id="intro-layer" class="layer active">
