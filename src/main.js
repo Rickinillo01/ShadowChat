@@ -66,7 +66,7 @@ async function loadAuthModule() {
     return authModule;
 }
 async function loadChatModule() {
-    if (!chatModule) chatModule = await import('./chat/chat.js?v=7');
+    if (!chatModule) chatModule = await import('./chat/chat.js?v=8');
     return chatModule;
 }
 async function loadLayoutModule() {

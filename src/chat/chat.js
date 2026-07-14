@@ -166,17 +166,17 @@ function _injectStyles() {
     .ch-viewonce-text { font-size:0.85rem; color:rgba(255,255,255,0.5); font-style:italic; }
     .ch-viewonce-opened { font-style:italic; color:rgba(255,255,255,0.25); font-size:0.82rem; }
 
-    .ch-input-area { padding:10px 16px; background:#0d0d15; border-top:1px solid rgba(255,255,255,0.06); flex-shrink:0; box-sizing:border-box; width:100%; }
-    .ch-input-row { display:flex; align-items:center; gap:8px; }
+    .ch-input-area { padding:8px 12px; background:#0d0d15; border-top:1px solid rgba(255,255,255,0.06); flex-shrink:0; box-sizing:border-box; width:100%; max-width:100%; overflow:hidden; }
+    .ch-input-row { display:flex; align-items:center; gap:6px; width:100%; box-sizing:border-box; }
     .ch-ttl-btn { padding:4px 10px; border-radius:16px; border:1px solid rgba(0,245,212,0.2); background:transparent; color:#00f5d4; font-size:0.72rem; font-weight:600; cursor:pointer; transition:all 0.2s; flex-shrink:0; white-space:nowrap; }
     .ch-ttl-btn:hover { background:rgba(0,245,212,0.08); }
-    .ch-attach-wrap { position:relative; display:flex; align-items:center; justify-content:center; width:32px; height:32px; }
-    .ch-attach-btn { background:none; border:none; color:rgba(255,255,255,0.4); cursor:pointer; padding:4px; border-radius:50%; transition:all 0.2s; display:flex; align-items:center; justify-content:center; width:100%; height:100%; }
+    .ch-attach-wrap { position:relative; display:flex; align-items:center; justify-content:center; width:36px; height:36px; flex-shrink:0; }
+    .ch-attach-btn { background:none; border:none; color:rgba(255,255,255,0.4); cursor:pointer; padding:0; border-radius:50%; transition:all 0.2s; display:flex; align-items:center; justify-content:center; width:100%; height:100%; flex-shrink:0; }
     .ch-attach-btn:hover { color:#00f5d4; }
-    .ch-input { flex:1; min-width:0; width:100%; box-sizing:border-box; padding:10px 14px; border-radius:20px; border:1px solid rgba(255,255,255,0.06); background:rgba(255,255,255,0.04); color:#e2e8f0; font-size:0.88rem; font-family:'Inter',sans-serif; outline:none; resize:none; max-height:100px; line-height:1.4; transition:border-color 0.2s; }
+    .ch-input { flex:1; min-width:0; box-sizing:border-box; padding:10px 14px; border-radius:20px; border:1px solid rgba(255,255,255,0.06); background:rgba(255,255,255,0.04); color:#e2e8f0; font-size:0.88rem; font-family:'Inter',sans-serif; outline:none; resize:none; max-height:100px; line-height:1.4; transition:border-color 0.2s; overflow-x:hidden; }
     .ch-input:focus { border-color:rgba(0,245,212,0.25); }
     .ch-input::placeholder { color:rgba(255,255,255,0.2); }
-    .ch-send-btn, .ch-camera-btn { background:rgba(0,245,212,0.15); border:none; color:#00f5d4; cursor:pointer; padding:8px; border-radius:50%; display:flex; transition:all 0.2s; flex-shrink:0; }
+    .ch-send-btn, .ch-camera-btn { background:rgba(0,245,212,0.15); border:none; color:#00f5d4; cursor:pointer; width:36px; height:36px; padding:0; border-radius:50%; display:flex; align-items:center; justify-content:center; transition:all 0.2s; flex-shrink:0; }
     .ch-send-btn:hover, .ch-camera-btn:hover { background:rgba(0,245,212,0.25); transform:scale(1.08); }
     .ch-send-btn.recording { background:rgba(247,37,133,0.15); color:#f72585; animation:chPulse 1.5s infinite; }
     @keyframes chPulse { 0% { box-shadow:0 0 0 0 rgba(247,37,133,0.4); } 70% { box-shadow:0 0 0 10px rgba(247,37,133,0); } 100% { box-shadow:0 0 0 0 rgba(247,37,133,0); } }
@@ -1323,9 +1323,12 @@ export async function initChat(container, user, conversationId, options = {}) {
   
   cameraBtn.addEventListener('click', () => {
     if (window.navigator && window.navigator.camera) {
-      window.navigator.camera.getPicture(async (imageData) => {
+      window.navigator.camera.getPicture(async (imageUri) => {
         try {
-            const response = await fetch('data:image/jpeg;base64,' + imageData);
+            const webPath = (window.Capacitor && window.Capacitor.convertFileSrc) 
+                ? window.Capacitor.convertFileSrc(imageUri) 
+                : imageUri;
+            const response = await fetch(webPath);
             const blob = await response.blob();
             const file = new File([blob], `Camera_${Date.now()}.jpg`, { type: 'image/jpeg' });
             
@@ -1338,7 +1341,7 @@ export async function initChat(container, user, conversationId, options = {}) {
         console.warn("Camera cancelled or failed:", err);
       }, {
         quality: 70,
-        destinationType: 0, // DATA_URL
+        destinationType: 1, // FILE_URI (1) instead of DATA_URL (0) to prevent RAM crashes
         targetWidth: 1200,
         correctOrientation: true,
         saveToPhotoAlbum: false
