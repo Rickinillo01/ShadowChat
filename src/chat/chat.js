@@ -601,13 +601,10 @@ export async function initChat(container, user, conversationId, options = {}) {
   const panicBtn = _el('button', { className: 'ch-hdr-btn ch-panic', innerHTML: ICONS.bolt, title: 'Pánico' });
   panicBtn.addEventListener('click', () => { if (_panicHandler) _panicHandler(); });
 
-  const trashBtn = _el('button', { className: 'ch-hdr-btn ch-trash', innerHTML: ICONS.trash, title: 'Borrar conversación' });
-  trashBtn.addEventListener('click', async () => {
-    if (confirm('¿Estás seguro de que quieres BORRAR ESTA CONVERSACIÓN para todos? Se perderán todos los mensajes y no se podrán recuperar.')) {
-      const { deleteConversation } = await import('./messages.js');
-      await deleteConversation(conversationId);
-      if (_backHandler) _backHandler();
-    }
+  const hideIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" y1="2" x2="22" y2="22"/></svg>`;
+  const hideBtn = _el('button', { className: 'ch-hdr-btn ch-hide', innerHTML: hideIcon, title: 'Limpiar pantalla' });
+  hideBtn.addEventListener('click', () => {
+    msgsContainer.innerHTML = '';
   });
 
   // TTL dropdown
@@ -631,7 +628,7 @@ export async function initChat(container, user, conversationId, options = {}) {
   header.appendChild(backBtn);
   header.appendChild(convNameWrap);
   header.appendChild(badge);
-  header.appendChild(trashBtn);
+  header.appendChild(hideBtn);
   header.appendChild(ttlDropWrap);
   header.appendChild(panicBtn);
   wrap.appendChild(header);
