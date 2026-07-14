@@ -66,7 +66,7 @@ async function loadAuthModule() {
     return authModule;
 }
 async function loadChatModule() {
-    if (!chatModule) chatModule = await import('./chat/chat.js?v=5');
+    if (!chatModule) chatModule = await import('./chat/chat.js?v=6');
     return chatModule;
 }
 async function loadLayoutModule() {
@@ -202,9 +202,7 @@ async function initChatUI(user, hideSidebar = false) {
 }
 
 // ── Hardware Back Button Handling ──────────────────────────
-document.addEventListener('backbutton', (e) => {
-    e.preventDefault();
-
+function _handleHardwareBack(e) {
     // 1. Close Modals
     const modals = document.querySelectorAll('.nc-overlay, .pf-overlay, .sc-tutorial-overlay');
     if (modals.length > 0) {
@@ -226,6 +224,21 @@ document.addEventListener('backbutton', (e) => {
     // 3. Exit App
     if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
         window.Capacitor.Plugins.App.exitApp();
+    }
+}
+
+// Fallback for Cordova / older Capacitor
+document.addEventListener('backbutton', (e) => {
+    e.preventDefault();
+    _handleHardwareBack(e);
+});
+
+// Primary for Capacitor 3+
+document.addEventListener('DOMContentLoaded', () => {
+    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
+        window.Capacitor.Plugins.App.addListener('backButton', ({ canGoBack }) => {
+            _handleHardwareBack();
+        });
     }
 });
 
