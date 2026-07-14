@@ -936,8 +936,6 @@ export async function initChat(container, user, conversationId, options = {}) {
           });
           notif.onclick = () => window.focus();
         }
-      } else {
-        _playNotificationSound('sent');
       }
     }
 
