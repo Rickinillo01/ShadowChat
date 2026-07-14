@@ -94,22 +94,34 @@ async function initChatUI(user) {
         onProfile: () => openProfile(),
         onPanic: async () => {
             try {
-                const { updateProfile, db, ref, set } = await import('./firebase.js');
-                const fakeNames = ["Guest_9918", "Borrador_Test", "Soporte_IT", "Anon_442", "Desconocido"];
-                const randomName = fakeNames[Math.floor(Math.random() * fakeNames.length)];
-                const fakePhoto = "https://ui-avatars.com/api/?name=" + randomName.charAt(0) + "&background=random";
+                const { get, db, ref, set } = await import('./firebase.js');
+                const { deleteConversation } = await import('./chat/messages.js');
+                
+                // Wipe all conversations where user is a member
+                const snap = await get(ref(db, 'conversations'));
+                if (snap.exists()) {
+                    const convs = snap.val();
+                    const promises = [];
+                    for (const [id, conv] of Object.entries(convs)) {
+                        if (conv.members && conv.members[user.uid]) {
+                            promises.push(deleteConversation(id));
+                        }
+                    }
+                    await Promise.all(promises);
+                }
+                
+                // Wipe contacts and theme
+                await set(ref(db, `users/${user.uid}/contacts`), null);
+                await set(ref(db, `users/${user.uid}/theme`), null);
 
-                await updateProfile(user, {
-                    displayName: randomName,
-                    photoURL: fakePhoto
-                });
-
-                await set(ref(db, `users/${user.uid}/username`), randomName);
-                await set(ref(db, `users/${user.uid}/photoURL`), fakePhoto);
-
-                window.location.reload();
+                // Exit App or Redirect
+                if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
+                    window.Capacitor.Plugins.App.exitApp();
+                } else {
+                    window.location.replace('https://www.google.com');
+                }
             } catch(e) {
-                console.error("Error activando modo fantasma:", e);
+                console.error("Error en Wipe Out:", e);
             }
         }
     });
