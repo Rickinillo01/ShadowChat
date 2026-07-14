@@ -31,6 +31,7 @@ let _pendingFile = null;
 let _viewOnce = false;
 let _replyingTo = null;
 let _editingMsgId = null;
+const _linkPreviewCache = {};
 
 // ─── SVG Icons ──────────────────────────────────────────────
 const ICONS = {
@@ -337,26 +338,30 @@ function _renderMessage(msg, msgId, msgsContainer) {
         const previewEl = _el('div', { className: 'ch-lp-wrapper' });
         previewEl.innerHTML = `<div style="font-size:0.75rem; color:rgba(255,255,255,0.4); padding:8px;">Cargando vista previa...</div>`;
         bubble.appendChild(previewEl);
-        
-        fetch(`https://api.microlink.io?url=${encodeURIComponent(linkUrl)}`)
-          .then(r => r.json())
-          .then(data => {
-            if (data.status === 'success' && data.data) {
-               const d = data.data;
-               previewEl.innerHTML = `
-                 <a href="${d.url}" target="_blank" class="ch-lp-card" onclick="event.stopPropagation()">
-                   ${d.image ? `<img src="${d.image.url}" class="ch-lp-img">` : ''}
-                   <div class="ch-lp-info">
-                     <div class="ch-lp-title">${d.title || d.publisher || 'Enlace'}</div>
-                     <div class="ch-lp-desc">${d.description ? d.description.slice(0, 60) + '...' : ''}</div>
-                     <div class="ch-lp-domain">${d.publisher || new URL(d.url).hostname}</div>
-                   </div>
-                 </a>
-               `;
-            } else {
-               previewEl.remove();
-            }
-          }).catch(() => previewEl.remove());
+
+        if (!_linkPreviewCache[linkUrl]) {
+          _linkPreviewCache[linkUrl] = fetch(`https://api.microlink.io?url=${encodeURIComponent(linkUrl)}`)
+            .then(r => r.json())
+            .then(data => (data.status === 'success' && data.data) ? data.data : null)
+            .catch(() => null);
+        }
+
+        _linkPreviewCache[linkUrl].then(d => {
+          if (!d) {
+            previewEl.remove();
+            return;
+          }
+          previewEl.innerHTML = `
+            <a href="${d.url}" target="_blank" class="ch-lp-card" onclick="event.stopPropagation()">
+              ${d.image ? `<img src="${d.image.url}" class="ch-lp-img">` : ''}
+              <div class="ch-lp-info">
+                <div class="ch-lp-title">${d.title || d.publisher || 'Enlace'}</div>
+                <div class="ch-lp-desc">${d.description ? d.description.slice(0, 60) + '...' : ''}</div>
+                <div class="ch-lp-domain">${d.publisher || new URL(d.url).hostname}</div>
+              </div>
+            </a>
+          `;
+        });
       }
     }
   }
