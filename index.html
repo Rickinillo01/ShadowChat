@@ -3,11 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ShadowChat 2.0</title>
+    <meta name="theme-color" content="#050508">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>ShadowChat</title>
     <meta name="description" content="Secure encrypted messaging platform.">
     <meta name="keywords" content="chat, secure, messaging">
     <meta name="author" content="ShadowChat">
-    <meta name="theme-color" content="#f72585">
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="./manifest.json">
+    <link rel="apple-touch-icon" href="./icon.jpg">
 
     <!-- Open Graph -->
     <meta property="og:title" content="ShadowChat 2.0">
@@ -46,6 +52,10 @@
         </div>
     </div>
 
-    <script type="module" src="src/main.js"></script>
+    <!-- Security & Anti-Screenshot protection -->
+    <script src="./src/security.js"></script>
+
+    <!-- App Entry Point -->
+    <script type="module" src="./src/main.js"></script>
 </body>
 </html>
