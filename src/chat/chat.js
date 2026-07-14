@@ -30,6 +30,7 @@ let _memberCount = 0;
 let _pendingFile = null;
 let _viewOnce = false;
 let _replyingTo = null;
+let _editingMsgId = null;
 
 // ─── SVG Icons ──────────────────────────────────────────────
 const ICONS = {
