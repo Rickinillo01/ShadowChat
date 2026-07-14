@@ -272,10 +272,7 @@ function _renderMessage(msg, msgId, msgsContainer) {
   });
   bubble.appendChild(delBtn);
 
-  // Reply button
-  const replyBtn = _el('button', { className: 'ch-msg-reply', innerHTML: '↩️', title: 'Responder' });
-  replyBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
+  const triggerReply = () => {
     let previewText = msg.text || '';
     if (msg.type === 'image') previewText = '📷 Foto';
     else if (msg.type === 'video') previewText = '🎥 Video';
@@ -292,8 +289,50 @@ function _renderMessage(msg, msgId, msgsContainer) {
     }
     const txt = document.querySelector('.ch-input');
     if (txt) txt.focus();
+  };
+
+  // Reply button
+  const replyBtn = _el('button', { className: 'ch-msg-reply', innerHTML: '↩️', title: 'Responder' });
+  replyBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    triggerReply();
   });
   bubble.appendChild(replyBtn);
+
+  // Swipe to reply
+  let touchStartX = 0;
+  let touchStartY = 0;
+  let currentX = 0;
+
+  wrapper.addEventListener('touchstart', (e) => {
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+    wrapper.style.transition = 'none';
+  }, { passive: true });
+
+  wrapper.addEventListener('touchmove', (e) => {
+    if (touchStartX === 0) return;
+    const deltaX = e.touches[0].clientX - touchStartX;
+    const deltaY = e.touches[0].clientY - touchStartY;
+
+    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) {
+      if (deltaX > 0 && deltaX < 80) {
+        currentX = deltaX;
+        wrapper.style.transform = `translateX(${currentX}px)`;
+        if (e.cancelable) e.preventDefault();
+      }
+    }
+  }, { passive: false });
+
+  wrapper.addEventListener('touchend', () => {
+    wrapper.style.transition = 'transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+    if (currentX > 50) {
+      triggerReply();
+    }
+    currentX = 0;
+    wrapper.style.transform = 'translateX(0)';
+    touchStartX = 0;
+  });
 
   wrapper.appendChild(bubble);
 
