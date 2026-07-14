@@ -22,6 +22,7 @@ function _injectStyles() {
     .pf-modal {
       background: #11111b; border: 1px solid rgba(168,85,247,0.2);
       border-radius: 16px; width: 90%; max-width: 400px;
+      box-sizing: border-box;
       display: flex; flex-direction: column; overflow: hidden;
       animation: pfSlideIn 0.3s ease; font-family: 'Inter', sans-serif;
       box-shadow: 0 0 40px rgba(168,85,247,0.1);
@@ -29,12 +30,14 @@ function _injectStyles() {
     .pf-header {
       display: flex; align-items: center; justify-content: space-between;
       padding: 20px 20px 16px; border-bottom: 1px solid rgba(255,255,255,0.06);
+      box-sizing: border-box; width: 100%;
     }
     .pf-title { font-size: 1.1rem; font-weight: 700; color: #e2e8f0; margin: 0; }
     .pf-close {
       width: 32px; height: 32px; border-radius: 8px; border: none;
       background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.5);
       font-size: 1.2rem; cursor: pointer; display: flex;
+      flex-shrink: 0; margin-left: 12px;
       align-items: center; justify-content: center; transition: all 0.2s;
     }
     .pf-close:hover { background: rgba(255,255,255,0.1); color: #fff; }
