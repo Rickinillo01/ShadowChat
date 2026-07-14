@@ -21,6 +21,7 @@ export function createMessage(text, user, ttlMs, options = {}) {
     mediaPath: options.mediaPath || null,
     mediaThumbnail: options.mediaThumbnail || null,
     viewOnce: options.viewOnce || false,
+    replyTo: options.replyTo || null,
     viewedBy: {},
     ttl: ttlMs,
     expiresAt: ttlMs > 0 ? now + ttlMs : null

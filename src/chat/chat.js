@@ -28,6 +28,7 @@ let _backHandler = null;
 let _memberCount = 0;
 let _pendingFile = null;
 let _viewOnce = false;
+let _replyingTo = null;
 
 // ─── SVG Icons ──────────────────────────────────────────────
 const ICONS = {
@@ -74,10 +75,26 @@ function _injectStyles() {
     .ch-empty p { margin:0; font-size:0.88rem; }
 
     .ch-msg { display:flex; flex-direction:column; max-width:65%; animation:chMsgIn 0.25s ease; position:relative; }
-    .ch-msg-del { position:absolute; top:-6px; right:-6px; width:22px; height:22px; border-radius:50%; background:#16162a; color:#f72585; border:1px solid rgba(247,37,133,0.3); opacity:0; pointer-events:none; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.2s; z-index:10; box-shadow:0 2px 5px rgba(0,0,0,0.3); padding:0; }
-    .ch-bubble:hover .ch-msg-del { opacity:1; pointer-events:auto; }
+    .ch-msg-del, .ch-msg-reply { position:absolute; top:-6px; width:22px; height:22px; border-radius:50%; background:#16162a; border:1px solid rgba(255,255,255,0.1); opacity:0; pointer-events:none; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.2s; z-index:10; box-shadow:0 2px 5px rgba(0,0,0,0.3); padding:0; }
+    .ch-msg-del { right:-6px; color:#f72585; border-color:rgba(247,37,133,0.3); }
+    .ch-msg-reply { right: 20px; color:#00f5d4; border-color:rgba(0,245,212,0.3); }
+    .ch-bubble:hover .ch-msg-del, .ch-bubble:hover .ch-msg-reply { opacity:1; pointer-events:auto; }
     .ch-msg-del:hover { background:#f72585; color:#fff; transform:scale(1.1); }
+    .ch-msg-reply:hover { background:#00f5d4; color:#000; transform:scale(1.1); }
     
+    .ch-quoted-msg { background:rgba(0,0,0,0.2); border-left:3px solid #00f5d4; padding:6px 10px; border-radius:6px; margin-bottom:6px; cursor:pointer; font-size:0.8rem; overflow:hidden; }
+    .ch-quoted-msg .q-sender { color:#00f5d4; font-weight:600; margin-bottom:2px; font-size:0.75rem; }
+    .ch-quoted-msg .q-text { color:rgba(255,255,255,0.7); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    
+    .ch-reply-preview { position:absolute; bottom:100%; left:0; right:0; background:#16162a; border-top:1px solid rgba(255,255,255,0.06); padding:8px 16px; display:flex; align-items:center; gap:10px; transform:translateY(100%); transition:transform 0.2s ease; z-index:0; }
+    .ch-reply-preview.active { transform:translateY(0); }
+    .ch-reply-preview-content { flex:1; border-left:3px solid #00f5d4; padding-left:8px; overflow:hidden; }
+    .ch-reply-preview-content .q-sender { color:#00f5d4; font-weight:600; font-size:0.75rem; }
+    .ch-reply-preview-content .q-text { color:rgba(255,255,255,0.6); font-size:0.8rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .ch-reply-preview-close { background:none; border:none; color:rgba(255,255,255,0.4); cursor:pointer; padding:4px; border-radius:50%; display:flex; transition:all 0.2s; }
+    .ch-reply-preview-close:hover { color:#f72585; background:rgba(247,37,133,0.1); }
+    
+    .ch-input-area { position:relative; z-index:2; background:#0d0d15; border-top:1px solid rgba(255,255,255,0.06); padding:10px 16px; display:flex; flex-direction:column; gap:8px; flex-shrink:0; }
     @media(max-width:768px) { .ch-msg { max-width:85%; } }
     @keyframes chMsgIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
     .ch-msg.sent { align-self:flex-end; align-items:flex-end; }
@@ -180,6 +197,22 @@ function _renderMessage(msg, msgId, msgsContainer) {
 
   const bubble = _el('div', { className: 'ch-bubble' });
 
+  // Render Quoted Message if exists
+  if (msg.replyTo) {
+    const quoted = _el('div', { className: 'ch-quoted-msg' });
+    quoted.innerHTML = `<div class="q-sender">${msg.replyTo.sender}</div><div class="q-text">${msg.replyTo.text}</div>`;
+    quoted.addEventListener('click', () => {
+      const target = msgsContainer.querySelector(`[data-msg-id="${msg.replyTo.id}"]`);
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        target.style.transition = 'background 0.3s';
+        target.style.background = 'rgba(0, 245, 212, 0.2)';
+        setTimeout(() => target.style.background = '', 1000);
+      }
+    });
+    bubble.appendChild(quoted);
+  }
+
   // View-once
   if (msg.viewOnce && msg.type !== 'text') {
     const viewedByMe = msg.viewedBy && msg.viewedBy[_currentUser.uid];
@@ -238,6 +271,29 @@ function _renderMessage(msg, msgId, msgsContainer) {
     }
   });
   bubble.appendChild(delBtn);
+
+  // Reply button
+  const replyBtn = _el('button', { className: 'ch-msg-reply', innerHTML: '↩️', title: 'Responder' });
+  replyBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    let previewText = msg.text || '';
+    if (msg.type === 'image') previewText = '📷 Foto';
+    else if (msg.type === 'video') previewText = '🎥 Video';
+    else if (msg.type === 'audio') previewText = '🎤 Audio';
+    else if (msg.viewOnce) previewText = '🔥 Ver una vez';
+    
+    _replyingTo = { id: msgId, sender: msg.senderName || 'Anónimo', text: previewText };
+    
+    const rp = document.querySelector('.ch-reply-preview');
+    if (rp) {
+      rp.querySelector('.q-sender').textContent = `Respondiendo a ${_replyingTo.sender}`;
+      rp.querySelector('.q-text').textContent = _replyingTo.text;
+      rp.classList.add('active');
+    }
+    const txt = document.querySelector('.ch-input');
+    if (txt) txt.focus();
+  });
+  bubble.appendChild(replyBtn);
 
   wrapper.appendChild(bubble);
 
@@ -405,6 +461,7 @@ export async function initChat(container, user, conversationId, options = {}) {
   _memberCount = options.memberCount || 2;
   _pendingFile = null;
   _viewOnce = false;
+  _replyingTo = null;
 
   container.innerHTML = '';
 
@@ -723,9 +780,24 @@ export async function initChat(container, user, conversationId, options = {}) {
   const uSnap = await get(ref(db, `users/${user.uid}`));
   const isMuted = uSnap.exists() && uSnap.val().muted === true;
 
+  // ── Reply Preview ──
+  const replyPreview = _el('div', { className: 'ch-reply-preview' });
+  const replyContent = _el('div', { className: 'ch-reply-preview-content' });
+  replyContent.innerHTML = `<div class="q-sender"></div><div class="q-text"></div>`;
+  const replyClose = _el('button', { className: 'ch-reply-preview-close', innerHTML: ICONS.close });
+  
+  replyClose.addEventListener('click', () => {
+    _replyingTo = null;
+    replyPreview.classList.remove('active');
+  });
+
+  replyPreview.appendChild(replyContent);
+  replyPreview.appendChild(replyClose);
+
   if (isMuted) {
     inputArea.innerHTML = `<div style="text-align:center; color:#f72585; font-size:0.85rem; padding:4px; font-family:'Inter',sans-serif;">🚫 Has sido silenciado por un administrador.</div>`;
   } else {
+    inputArea.appendChild(replyPreview);
     inputArea.appendChild(inputRow);
   }
 
@@ -760,7 +832,8 @@ export async function initChat(container, user, conversationId, options = {}) {
           mediaURL: result.url,
           mediaPath: result.path,
           mediaThumbnail: thumbnail,
-          viewOnce: _viewOnce
+          viewOnce: _viewOnce,
+          replyTo: _replyingTo
         });
       } catch (error) {
         console.error('[Chat] Upload error:', error);
@@ -770,11 +843,13 @@ export async function initChat(container, user, conversationId, options = {}) {
       uploadBarEl.style.display = 'none';
       _clearPreview();
     } else if (text) {
-      await sendMessage(conversationId, text, user, ttl);
+      await sendMessage(conversationId, text, user, ttl, { replyTo: _replyingTo });
     } else {
       return; // Nothing to send
     }
 
+    _replyingTo = null;
+    replyPreview.classList.remove('active');
     textInput.value = '';
     textInput.style.height = 'auto';
     if (typeof _updateSendBtn === 'function') _updateSendBtn();
@@ -859,6 +934,7 @@ export function destroyChat() {
   if (_progressIntervalId) { clearInterval(_progressIntervalId); _progressIntervalId = null; }
   _currentConvId = null;
   _pendingFile = null;
+  _replyingTo = null;
   if (_container) _container.innerHTML = '';
 }
 
