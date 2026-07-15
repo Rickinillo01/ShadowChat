@@ -19,7 +19,8 @@ jobs:
 
       - name: Create Temporary Package.json
         run: |
-          echo '{
+          cat << 'EOF' > package.json
+          {
             "name": "shadowchat",
             "version": "1.0.0",
             "dependencies": {
@@ -32,27 +33,22 @@ jobs:
               "@capacitor/cli": "^6.0.0",
               "@capacitor/assets": "^3.0.5"
             }
-          }' > package.json
+          }
+          EOF
 
       - name: Install Dependencies
         run: npm install
 
       - name: Initialize Capacitor
         run: |
-          npx cap init ShadowChat com.rickinillo.shadowchat --web-dir .
+          npx cap init ShadowChat com.rickinillo.shadowchat --web-dir . || echo "cap init failed"
           npx cap add ios
           npx cap sync ios
-
-      - name: Generate iOS Icons & Splash
-        run: |
-          mkdir assets
-          cp icon.jpg assets/icon.jpg
-          mv assets/icon.jpg assets/icon.png
-          npx @capacitor/assets generate --ios
 
       - name: Build Xcode Project
         run: |
           cd ios/App
+          pod install
           # We build an unsigned archive
           xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -sdk iphoneos build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
 
