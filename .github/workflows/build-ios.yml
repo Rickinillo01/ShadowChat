@@ -56,10 +56,16 @@ jobs:
           sed -i '' 's|https://www.gstatic.com/firebasejs/[^/]*/firebase-auth\.js|firebase/auth|g' www/src/main.js
           
           # Bundle the app into www/dist
-          npx esbuild www/src/main.js --bundle --minify --format=esm --target=es2020 --splitting --outdir=www/dist
+          npx esbuild www/src/main.js --bundle --minify --format=esm --target=es2020 --splitting --outdir=www/dist --outbase=www/src
+          
+          # Verify files
+          ls -la www/dist/
           
           # Point index.html to the bundled file
           sed -i '' 's|./src/main.js|./dist/main.js|g' www/index.html
+          
+          # Fallback: also copy the dist files over the original src just in case
+          cp -R www/dist/* www/src/
 
           cat << 'EOF' > capacitor.config.json
           {
