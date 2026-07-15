@@ -1438,26 +1438,26 @@ export async function initChat(container, user, conversationId, options = {}) {
           _sendSticker(url);
         });
 
-        let timer;
-        img.addEventListener('touchstart', () => {
-          timer = setTimeout(async () => {
-             if (confirm('¿Eliminar este sticker?')) {
-               const newArr = urls.filter((_, i) => i !== idx);
-               await set(ref(db, `users/${user.uid}/stickers`), newArr);
-               _loadStickers();
-             }
-          }, 600);
-        });
-        img.addEventListener('touchend', () => clearTimeout(timer));
-        
-        img.addEventListener('contextmenu', async (e) => {
-           e.preventDefault();
+        const deleteSticker = async (e) => {
+           if (e && e.preventDefault) e.preventDefault();
+           if (Date.now() - (img.dataset.lastDel || 0) < 1000) return;
+           img.dataset.lastDel = Date.now();
            if (confirm('¿Eliminar este sticker?')) {
              const newArr = urls.filter((_, i) => i !== idx);
              await set(ref(db, `users/${user.uid}/stickers`), newArr);
              _loadStickers();
            }
-        });
+        };
+
+        let timer;
+        img.addEventListener('touchstart', () => {
+          timer = setTimeout(deleteSticker, 600);
+        }, { passive: true });
+        img.addEventListener('touchend', () => clearTimeout(timer));
+        img.addEventListener('touchcancel', () => clearTimeout(timer));
+        img.addEventListener('touchmove', () => clearTimeout(timer));
+        
+        img.addEventListener('contextmenu', deleteSticker);
 
         stickerGrid.appendChild(img);
       });
