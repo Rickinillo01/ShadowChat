@@ -4,6 +4,7 @@
  */
 
 (function() {
+    try {
     // 1. Prevent text selection and context menu
     document.addEventListener('contextmenu', e => e.preventDefault());
     
@@ -101,4 +102,5 @@
             curtain.classList.remove('active');
         }, 150);
     });
+    } catch(err) { alert('SECURITY ERROR: ' + err.message); }
 })();

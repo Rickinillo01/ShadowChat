@@ -61,6 +61,12 @@ jobs:
           # Bundle the app into ONE single classic script (IIFE)
           npx esbuild www/src/main.js --bundle --minify --format=iife --target=es2020 --outfile=www/dist/bundle.js
           
+          # Wrap the entire bundle in a try-catch to bypass WKWebView error masking
+          echo "try {" > www/dist/wrapped_bundle.js
+          cat www/dist/bundle.js >> www/dist/wrapped_bundle.js
+          echo "} catch (e) { alert('CRITICAL BUNDLE ERROR: ' + e.name + ' - ' + e.message + ' \\nStack: ' + e.stack); }" >> www/dist/wrapped_bundle.js
+          mv www/dist/wrapped_bundle.js www/dist/bundle.js
+          
           # Verify files
           ls -la www/dist/
           
