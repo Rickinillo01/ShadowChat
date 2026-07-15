@@ -44,6 +44,7 @@ export async function sendMessage(conversationId, text, user, ttlMs, options = {
   if (options.type === 'image') previewText = '📷 Foto';
   else if (options.type === 'video') previewText = '🎥 Video';
   else if (options.type === 'audio') previewText = '🎤 Audio';
+  else if (options.type === 'sticker') previewText = '📝 Sticker';
 
   // Write message and update lastMessage atomically
   const updates = {};

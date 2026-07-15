@@ -9,7 +9,7 @@ import {
 import {
   sendMessage, startCleanupInterval, stopCleanupInterval,
   formatTimestamp, getTTLOptions, getRemainingTime, markViewOnce, checkAllViewed
-} from './messages.js?v=6';
+} from './messages.js?v=7';
 
 import {
   uploadMedia, getMediaType, validateFile, formatFileSize, generateThumbnail
@@ -165,6 +165,18 @@ function _injectStyles() {
     .ch-viewonce-text { font-size:0.85rem; color:rgba(255,255,255,0.5); font-style:italic; }
     .ch-viewonce-opened { font-style:italic; color:rgba(255,255,255,0.25); font-size:0.82rem; }
 
+    .ch-sticker-btn { background:none; border:none; color:rgba(255,255,255,0.4); cursor:pointer; padding:6px; border-radius:50%; transition:all 0.2s; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:1.2rem; }
+    .ch-sticker-btn:hover { color:#00f5d4; background:rgba(0,245,212,0.1); }
+    .ch-sticker-panel { position:absolute; bottom:100%; right:0; left:0; height:250px; background:#16162a; border-top:1px solid rgba(255,255,255,0.08); border-radius:12px 12px 0 0; display:none; flex-direction:column; z-index:100; box-shadow:0 -4px 20px rgba(0,0,0,0.5); padding:10px; }
+    .ch-sticker-panel.show { display:flex; animation:chMsgIn 0.2s ease; }
+    .ch-sticker-grid { flex:1; overflow-y:auto; display:grid; grid-template-columns:repeat(auto-fill, minmax(65px, 1fr)); gap:12px; padding:4px; align-content:start; }
+    .ch-sticker-item { width:100%; aspect-ratio:1; object-fit:contain; cursor:pointer; border-radius:8px; transition:transform 0.2s; background:rgba(255,255,255,0.03); }
+    .ch-sticker-item:hover { transform:scale(1.1); background:rgba(255,255,255,0.08); }
+    .ch-sticker-add { width:100%; aspect-ratio:1; border-radius:8px; border:2px dashed rgba(0,245,212,0.3); display:flex; align-items:center; justify-content:center; color:#00f5d4; font-size:1.5rem; cursor:pointer; transition:all 0.2s; background:rgba(0,245,212,0.05); }
+    .ch-sticker-add:hover { background:rgba(0,245,212,0.15); border-color:#00f5d4; }
+    .ch-msg-sticker { max-width:180px; width:100%; aspect-ratio:1; object-fit:contain; border-radius:0; background:transparent; margin:0; cursor:pointer; transition:transform 0.2s; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3)); }
+    .ch-msg-sticker:hover { transform:scale(1.05); }
+
     .ch-input-area { position:relative; z-index:2; padding:8px 12px; background:#0d0d15; border-top:1px solid rgba(255,255,255,0.06); flex-shrink:0; box-sizing:border-box; width:100%; max-width:100%; display:flex; flex-direction:column; gap:8px; overflow:visible; }
     .ch-input-row { display:flex; align-items:center; gap:6px; width:100%; box-sizing:border-box; }
     .ch-ttl-btn { padding:4px 10px; border-radius:16px; border:1px solid rgba(0,245,212,0.2); background:transparent; color:#00f5d4; font-size:0.72rem; font-weight:600; cursor:pointer; transition:all 0.2s; flex-shrink:0; white-space:nowrap; }
@@ -285,6 +297,28 @@ function _renderMessage(msg, msgId, msgsContainer) {
     const img = _el('img', { className: 'ch-msg-img', src: msg.mediaURL, alt: 'Imagen' });
     img.addEventListener('click', () => _openLightbox(msg.mediaURL, 'image'));
     bubble.appendChild(img);
+  } else if (msg.type === 'sticker' && msg.mediaURL) {
+    const sticker = _el('img', { className: 'ch-msg-sticker', src: msg.mediaURL });
+    sticker.addEventListener('click', async (e) => {
+       e.stopPropagation();
+       if (confirm('¿Añadir este sticker a tus favoritos?')) {
+          const { get, ref, set } = await import('../firebase.js');
+          const snap = await get(ref(db, `users/${_currentUser.uid}/stickers`));
+          const stickers = snap.exists() ? snap.val() : [];
+          if (!stickers.includes(msg.mediaURL)) {
+             stickers.push(msg.mediaURL);
+             await set(ref(db, `users/${_currentUser.uid}/stickers`), stickers);
+             alert('Sticker añadido correctamente.');
+          } else {
+             alert('Ya tienes este sticker guardado.');
+          }
+       }
+    });
+    bubble.style.background = 'transparent';
+    bubble.style.boxShadow = 'none';
+    bubble.style.border = 'none';
+    bubble.style.padding = '0';
+    bubble.appendChild(sticker);
   } else if (msg.type === 'video' && msg.mediaURL) {
     const video = _el('video', { className: 'ch-msg-video', src: msg.mediaURL, controls: true, preload: 'metadata' });
     if (msg.mediaThumbnail) video.poster = msg.mediaThumbnail;
@@ -322,7 +356,7 @@ function _renderMessage(msg, msgId, msgsContainer) {
           const failCount = (msg.failedPins || 0) + 1;
           if (failCount >= 3) {
             alert("Has fallado el PIN 3 veces. El mensaje se ha autodestruido de forma permanente.");
-            const { deleteMessage } = await import('./messages.js?v=6');
+            const { deleteMessage } = await import('./messages.js?v=7');
             deleteMessage(_currentConvId, msgId);
           } else {
             alert(`PIN incorrecto. Te quedan ${3 - failCount} intentos antes de que el mensaje se autodestruya.`);
@@ -557,7 +591,7 @@ function _renderMessage(msg, msgId, msgsContainer) {
     delBtn.addEventListener('click', async (e) => {
       e.stopPropagation();
       if (confirm('¿Eliminar este mensaje para todos?')) {
-        const { deleteMessage } = await import('./messages.js?v=6');
+        const { deleteMessage } = await import('./messages.js?v=7');
         deleteMessage(_currentConvId, msgId);
       }
     });
@@ -933,7 +967,7 @@ export async function initChat(container, user, conversationId, options = {}) {
                   banner.textContent = 'Este chat ha expirado. Autodestruyendo...';
                   setTimeout(async () => {
                       try {
-                          const { deleteConversation } = await import('./messages.js?v=6');
+                          const { deleteConversation } = await import('./messages.js?v=7');
                           await deleteConversation(conversationId);
                       } catch(e) {}
                       if (_backHandler) _backHandler();
@@ -1334,57 +1368,116 @@ export async function initChat(container, user, conversationId, options = {}) {
   inputRow.appendChild(drawerWrap);
   inputRow.appendChild(textInput);
   
-  const camWrap = _el('div', { className: 'ch-cam-wrap' });
-  const cameraBtn = _el('button', { className: 'ch-camera-btn', innerHTML: ICONS.camera });
-  const camPopup = _el('div', { 
-    className: 'ch-cam-popup',
-    innerHTML: `
-      <div class="cam-opt" id="opt-photo">📸 Hacer foto</div>
-      <div class="cam-opt" id="opt-video">🎥 Grabar vídeo</div>
-    `
-  });
+  // ── Sticker Panel ──
+  const stickerWrap = _el('div', { style: 'position:relative; display:flex; align-items:center;' });
+  const stickerBtn = _el('button', { className: 'ch-sticker-btn', innerHTML: '📝' });
+  const stickerPanel = _el('div', { className: 'ch-sticker-panel' });
+  const stickerGrid = _el('div', { className: 'ch-sticker-grid' });
   
-  const cameraInput = _el('input', { type: 'file', accept: 'image/*', capture: 'environment', style: 'display:none' });
-  const videoInput = _el('input', { type: 'file', accept: 'video/*', capture: 'environment', style: 'display:none' });
+  const stickerInput = _el('input', { type: 'file', accept: 'image/png, image/webp, image/jpeg, image/gif', style: 'display:none' });
+  const addStickerBtn = _el('div', { className: 'ch-sticker-add', innerHTML: '+' });
   
-  camWrap.appendChild(cameraBtn);
-  camWrap.appendChild(camPopup);
-  camWrap.appendChild(cameraInput);
-  camWrap.appendChild(videoInput);
-
-  cameraBtn.addEventListener('click', (e) => {
+  stickerPanel.appendChild(stickerGrid);
+  stickerWrap.appendChild(stickerBtn);
+  stickerWrap.appendChild(stickerPanel);
+  stickerWrap.appendChild(stickerInput);
+  
+  stickerBtn.addEventListener('click', async (e) => {
     e.stopPropagation();
-    camPopup.classList.toggle('show');
-  });
-  
-  document.addEventListener('click', (e) => {
-    if (!camWrap.contains(e.target)) {
-      camPopup.classList.remove('show');
+    stickerPanel.classList.toggle('show');
+    if (stickerPanel.classList.contains('show')) {
+      _loadStickers();
     }
   });
 
-  camPopup.querySelector('#opt-photo').addEventListener('click', () => {
-    camPopup.classList.remove('show');
-    cameraInput.click();
+  document.addEventListener('click', (e) => {
+    if (!stickerWrap.contains(e.target)) {
+      stickerPanel.classList.remove('show');
+    }
   });
 
-  camPopup.querySelector('#opt-video').addEventListener('click', () => {
-    camPopup.classList.remove('show');
-    videoInput.click();
-  });
-  
-  cameraInput.addEventListener('change', async () => {
-    _fileType = 'image';
-    _handleFileSelection(cameraInput.files[0], 'image');
-    cameraInput.value = '';
+  addStickerBtn.addEventListener('click', () => {
+    stickerInput.click();
   });
 
-  videoInput.addEventListener('change', async () => {
-    _fileType = 'video';
-    _handleFileSelection(videoInput.files[0], 'video');
-    videoInput.value = '';
+  stickerInput.addEventListener('change', async () => {
+    const file = stickerInput.files[0];
+    if (!file) return;
+    stickerInput.value = '';
+    
+    addStickerBtn.innerHTML = '<div style="width:20px;height:20px;border:2px solid #00f5d4;border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite;"></div>';
+    try {
+      const { uploadMedia } = await import('./media.js');
+      const url = await uploadMedia(file, 'image');
+      
+      const snap = await get(ref(db, `users/${user.uid}/stickers`));
+      const stickers = snap.exists() ? snap.val() : [];
+      stickers.push(url);
+      await set(ref(db, `users/${user.uid}/stickers`), stickers);
+      
+      _loadStickers();
+    } catch(err) {
+      alert("Error subiendo sticker: " + err.message);
+    }
+    addStickerBtn.innerHTML = '+';
   });
 
+  async function _loadStickers() {
+    stickerGrid.innerHTML = '';
+    stickerGrid.appendChild(addStickerBtn);
+    const snap = await get(ref(db, `users/${user.uid}/stickers`));
+    if (snap.exists()) {
+      const urls = snap.val();
+      urls.forEach((url, idx) => {
+        const img = _el('img', { className: 'ch-sticker-item', src: url });
+        
+        img.addEventListener('click', () => {
+          stickerPanel.classList.remove('show');
+          _sendSticker(url);
+        });
+
+        let timer;
+        img.addEventListener('touchstart', () => {
+          timer = setTimeout(async () => {
+             if (confirm('¿Eliminar este sticker?')) {
+               const newArr = urls.filter((_, i) => i !== idx);
+               await set(ref(db, `users/${user.uid}/stickers`), newArr);
+               _loadStickers();
+             }
+          }, 600);
+        });
+        img.addEventListener('touchend', () => clearTimeout(timer));
+        
+        img.addEventListener('contextmenu', async (e) => {
+           e.preventDefault();
+           if (confirm('¿Eliminar este sticker?')) {
+             const newArr = urls.filter((_, i) => i !== idx);
+             await set(ref(db, `users/${user.uid}/stickers`), newArr);
+             _loadStickers();
+           }
+        });
+
+        stickerGrid.appendChild(img);
+      });
+    }
+  }
+
+  async function _sendSticker(url) {
+    if (isMuted) return;
+    const { sendMessage } = await import('./messages.js?v=7');
+    try {
+      const opts = { type: 'sticker', mediaURL: url };
+      if (_replyingTo) opts.replyTo = _replyingTo;
+      
+      await sendMessage(conversationId, '', user, _ttlOptions[_currentTTLIndex].value, opts);
+      _replyingTo = null;
+      document.querySelector('.ch-reply-preview')?.classList.remove('active');
+    } catch(err) {
+      alert("Error enviando sticker");
+    }
+  }
+
+  inputRow.appendChild(stickerWrap);
   inputRow.appendChild(camWrap);
   inputRow.appendChild(sendBtn);
 
