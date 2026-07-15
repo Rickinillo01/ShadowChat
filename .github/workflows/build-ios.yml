@@ -27,11 +27,13 @@ jobs:
               "@capacitor/core": "^6.0.0",
               "@capacitor/ios": "^6.0.0",
               "cordova-plugin-camera": "^8.0.0",
-              "onesignal-cordova-plugin": "^5.1.8"
+              "onesignal-cordova-plugin": "^5.1.8",
+              "firebase": "^10.12.2"
             },
             "devDependencies": {
               "@capacitor/cli": "^6.0.0",
-              "@capacitor/assets": "^3.0.5"
+              "@capacitor/assets": "^3.0.5",
+              "esbuild": "^0.21.5"
             }
           }
           EOF
@@ -45,6 +47,19 @@ jobs:
           cp index.html www/
           cp icon.jpg www/
           cp -r src www/
+          
+          # Convert CDN imports to NPM imports for bundling
+          sed -i '' 's|https://www.gstatic.com/firebasejs/[^/]*/firebase-app\.js|firebase/app|g' www/src/firebase.js
+          sed -i '' 's|https://www.gstatic.com/firebasejs/[^/]*/firebase-auth\.js|firebase/auth|g' www/src/firebase.js
+          sed -i '' 's|https://www.gstatic.com/firebasejs/[^/]*/firebase-database\.js|firebase/database|g' www/src/firebase.js
+          sed -i '' 's|https://www.gstatic.com/firebasejs/[^/]*/firebase-storage\.js|firebase/storage|g' www/src/firebase.js
+          sed -i '' 's|https://www.gstatic.com/firebasejs/[^/]*/firebase-auth\.js|firebase/auth|g' www/src/main.js
+          
+          # Bundle the app into www/dist
+          npx esbuild www/src/main.js --bundle --minify --format=esm --target=es2020 --splitting --outdir=www/dist
+          
+          # Point index.html to the bundled file
+          sed -i '' 's|./src/main.js|./dist/main.js|g' www/index.html
 
           cat << 'EOF' > capacitor.config.json
           {
