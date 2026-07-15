@@ -55,18 +55,17 @@ jobs:
           sed -i '' 's|https://www.gstatic.com/firebasejs/[^/]*/firebase-storage\.js|firebase/storage|g' www/src/firebase.js
           sed -i '' 's|https://www.gstatic.com/firebasejs/[^/]*/firebase-auth\.js|firebase/auth|g' www/src/main.js
           
-          # Bundle the app into www/dist
-          npx esbuild www/src/main.js --bundle --minify --format=esm --target=es2020 --splitting --outdir=www/dist --outbase=www/src
+          # Convert dynamic imports to require to allow IIFE bundling
+          find www/src -name "*.js" -exec sed -i '' 's|import(|require(|g' {} +
+          
+          # Bundle the app into ONE single classic script (IIFE)
+          npx esbuild www/src/main.js --bundle --minify --format=iife --target=es2020 --outfile=www/dist/bundle.js
           
           # Verify files
           ls -la www/dist/
           
-          # Point index.html to the bundled file and add crossorigin to unmask errors
-          sed -i '' 's|./src/main.js|./dist/main.js|g' www/index.html
-          sed -i '' 's|src="./dist/main.js"|crossorigin="anonymous" src="./dist/main.js"|g' www/index.html
-          
-          # Fallback: also copy the dist files over the original src just in case
-          cp -R www/dist/* www/src/
+          # Point index.html to the bundled classic script
+          sed -i '' 's|<script type="module" src="./src/main.js"></script>|<script src="./dist/bundle.js"></script>|g' www/index.html
 
           cat << 'EOF' > capacitor.config.json
           {
