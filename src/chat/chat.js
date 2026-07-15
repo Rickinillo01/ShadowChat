@@ -1464,7 +1464,6 @@ export async function initChat(container, user, conversationId, options = {}) {
 
   async function _sendSticker(url) {
     if (isMuted) return;
-    const { sendMessage } = await import('./messages.js?v=7');
     try {
       const opts = { type: 'sticker', mediaURL: url };
       if (_replyingTo) opts.replyTo = _replyingTo;
