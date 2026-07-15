@@ -1402,7 +1402,7 @@ export async function initChat(container, user, conversationId, options = {}) {
 
   if (isMuted) {
     inputArea.innerHTML = `<div style="text-align:center; color:#f72585; font-size:0.85rem; padding:4px; font-family:'Inter',sans-serif;">🚫 Has sido silenciado por un administrador.</div>`;
-  } else if (convId === 'broadcast_support' && user.email !== 'cleivsec@gmail.com') {
+  } else if (conversationId === 'broadcast_support' && user.email !== 'cleivsec@gmail.com') {
     inputArea.innerHTML = `<div style="text-align:center; color:#00f5d4; font-size:0.85rem; padding:8px; font-family:'Inter',sans-serif; font-weight:500;">📢 Solo los administradores pueden enviar mensajes en este canal.</div>`;
   } else {
     inputArea.appendChild(replyPreview);
