@@ -41,7 +41,13 @@ jobs:
 
       - name: Initialize Capacitor
         run: |
-          npx cap init ShadowChat com.rickinillo.shadowchat --web-dir . || echo "cap init failed"
+          cat << 'EOF' > capacitor.config.json
+          {
+            "appId": "com.rickinillo.shadowchat",
+            "appName": "ShadowChat",
+            "webDir": "."
+          }
+          EOF
           npx cap add ios
           npx cap sync ios
 
