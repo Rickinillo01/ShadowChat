@@ -4,7 +4,7 @@
  * Includes Auth, Realtime Database, and Storage.
  */
 
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.7.1/firebase-app.js';
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 
 import {
   getAuth,
@@ -14,7 +14,7 @@ import {
   onAuthStateChanged,
   updateProfile,
   updatePassword
-} from 'https://www.gstatic.com/firebasejs/11.7.1/firebase-auth.js';
+} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 
 import {
   getDatabase,
@@ -35,7 +35,7 @@ import {
   get,
   child,
   onDisconnect
-} from 'https://www.gstatic.com/firebasejs/11.7.1/firebase-database.js';
+} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
 
 import {
   getStorage,
@@ -44,7 +44,7 @@ import {
   uploadBytesResumable,
   getDownloadURL,
   deleteObject
-} from 'https://www.gstatic.com/firebasejs/11.7.1/firebase-storage.js';
+} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js';
 
 // ─── Firebase Configuration ─────────────────────────────────────────────────────
 const firebaseConfig = {

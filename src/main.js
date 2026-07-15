@@ -364,7 +364,7 @@ async function init() {
                     chatView.classList.remove('hidden');
                     try {
                         const { auth, ref, set, db } = await import('./firebase.js');
-                        const { signInAnonymously, updateProfile } = await import('https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js');
+                        const { signInAnonymously, updateProfile } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js');
                         const userCred = await signInAnonymously(auth);
                         user = userCred.user;
                         
