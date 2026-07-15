@@ -42,6 +42,12 @@ if (isNativeApp) {
         document.addEventListener("deviceready", initNativeOneSignal, false);
     }
 } else {
+    // Inject OneSignal Web SDK
+    const script = document.createElement('script');
+    script.src = "https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js";
+    script.defer = true;
+    document.head.appendChild(script);
+
     window.OneSignalDeferred = window.OneSignalDeferred || [];
     OneSignalDeferred.push(async function(OneSignal) {
       try {
