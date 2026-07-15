@@ -1366,10 +1366,9 @@ export async function initChat(container, user, conversationId, options = {}) {
   });
 
   inputRow.appendChild(drawerWrap);
-  inputRow.appendChild(textInput);
   
   // ── Sticker Panel ──
-  const stickerWrap = _el('div', { style: 'position:relative; display:flex; align-items:center;' });
+  const stickerWrap = _el('div', { style: 'position:relative; display:flex; align-items:center; flex-shrink:0;' });
   const stickerBtn = _el('button', { className: 'ch-sticker-btn', innerHTML: '📝' });
   const stickerPanel = _el('div', { className: 'ch-sticker-panel' });
   const stickerGrid = _el('div', { className: 'ch-sticker-grid' });
@@ -1528,6 +1527,7 @@ export async function initChat(container, user, conversationId, options = {}) {
   });
 
   inputRow.appendChild(stickerWrap);
+  inputRow.appendChild(textInput);
   inputRow.appendChild(camWrap);
   inputRow.appendChild(sendBtn);
 
