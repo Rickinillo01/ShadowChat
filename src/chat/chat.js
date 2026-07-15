@@ -1470,7 +1470,7 @@ export async function initChat(container, user, conversationId, options = {}) {
       const opts = { type: 'sticker', mediaURL: url };
       if (_replyingTo) opts.replyTo = _replyingTo;
       
-      await sendMessage(conversationId, '', user, _ttlOptions[_currentTTLIndex].value, opts);
+      await sendMessage(conversationId, '', user, getTTLOptions()[_currentTTLIndex].value, opts);
       _replyingTo = null;
       document.querySelector('.ch-reply-preview')?.classList.remove('active');
     } catch(err) {
