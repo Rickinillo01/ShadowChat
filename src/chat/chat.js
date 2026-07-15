@@ -13,7 +13,7 @@ import {
 
 import {
   uploadMedia, getMediaType, validateFile, formatFileSize, generateThumbnail
-} from './media.js?v=5';
+} from './media.js?v=6';
 
 import { state } from '../main.js';
 
@@ -720,7 +720,7 @@ function _openViewOnce(msg, msgId) {
       if (checkAllViewed(updated, _memberCount)) {
         // Delete media and message
         if (updated.mediaPath) {
-          const { deleteMedia } = await import('./media.js');
+          const { deleteMedia } = await import('./media.js?v=6');
           await deleteMedia(updated.mediaPath);
         }
         await remove(ref(db, `messages/${_currentConvId}/${msgId}`));

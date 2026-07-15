@@ -199,9 +199,9 @@ export function getMediaType(file) {
  */
 export function validateFile(file, type) {
   const limits = {
-    image: { maxSize: 10 * 1024 * 1024, types: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'] },
-    video: { maxSize: 50 * 1024 * 1024, types: ['video/mp4', 'video/webm', 'video/quicktime'] },
-    audio: { maxSize: 15 * 1024 * 1024, types: ['audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/mp4', 'audio/webm'] }
+    image: { maxSize: 15 * 1024 * 1024, types: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'] },
+    video: { maxSize: 100 * 1024 * 1024, types: ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-m4v'] },
+    audio: { maxSize: 25 * 1024 * 1024, types: ['audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/mp4', 'audio/webm'] }
   };
 
   const rule = limits[type];
