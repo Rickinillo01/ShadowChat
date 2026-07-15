@@ -1379,7 +1379,7 @@ export async function initChat(container, user, conversationId, options = {}) {
   
   stickerPanel.appendChild(stickerGrid);
   stickerWrap.appendChild(stickerBtn);
-  stickerWrap.appendChild(stickerPanel);
+  inputArea.appendChild(stickerPanel);
   stickerWrap.appendChild(stickerInput);
   
   stickerBtn.addEventListener('click', async (e) => {
@@ -1391,7 +1391,7 @@ export async function initChat(container, user, conversationId, options = {}) {
   });
 
   document.addEventListener('click', (e) => {
-    if (!stickerWrap.contains(e.target)) {
+    if (!stickerWrap.contains(e.target) && !stickerPanel.contains(e.target)) {
       stickerPanel.classList.remove('show');
     }
   });
