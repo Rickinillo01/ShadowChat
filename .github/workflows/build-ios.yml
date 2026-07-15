@@ -61,8 +61,9 @@ jobs:
           # Verify files
           ls -la www/dist/
           
-          # Point index.html to the bundled file
+          # Point index.html to the bundled file and add crossorigin to unmask errors
           sed -i '' 's|./src/main.js|./dist/main.js|g' www/index.html
+          sed -i '' 's|src="./dist/main.js"|crossorigin="anonymous" src="./dist/main.js"|g' www/index.html
           
           # Fallback: also copy the dist files over the original src just in case
           cp -R www/dist/* www/src/
