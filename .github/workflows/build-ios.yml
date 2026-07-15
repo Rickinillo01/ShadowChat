@@ -45,20 +45,14 @@ jobs:
           npx cap add ios
           npx cap sync ios
 
-      - name: Build Xcode Project
+      - name: Build Xcode Project and Create IPA
         run: |
           cd ios/App
           pod install
-          # We build an unsigned archive
-          xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -sdk iphoneos build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
-
-      - name: Create Payload and IPA
-        run: |
-          cd ios/App
+          xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -sdk iphoneos build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO CONFIGURATION_BUILD_DIR="$(PWD)/build/Release-iphoneos"
+          
           mkdir -p Payload
-          # Move the compiled .app into the Payload folder
           mv build/Release-iphoneos/App.app Payload/
-          # Zip it up as an .ipa file
           zip -r ShadowChat.ipa Payload
 
       - name: Upload IPA Artifact
