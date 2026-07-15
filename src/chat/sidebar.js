@@ -199,6 +199,7 @@ async function _getContactName(uid) {
  * Gets display name for a conversation.
  */
 async function _getConvDisplayName(conv, convId) {
+  if (convId === 'broadcast_support') return 'ShadowChat - Soporte';
   if (conv.type === 'group') return conv.name || 'Grupo';
   // Private: find the other user
   const members = Object.keys(conv.members || {});
@@ -212,7 +213,8 @@ async function _getConvDisplayName(conv, convId) {
 /**
  * Gets avatar info for a conversation.
  */
-async function _getConvAvatar(conv) {
+async function _getConvAvatar(conv, convId) {
+  if (convId === 'broadcast_support') return { type: 'letter', value: '📢', isEmoji: true };
   if (conv.type === 'group') {
     return { type: 'letter', value: (conv.name || 'G')[0].toUpperCase() };
   }
@@ -229,9 +231,18 @@ async function _getConvAvatar(conv) {
  * Renders the conversation list.
  */
 async function _renderList(listEl) {
+  // Synthesize broadcast_support if it doesn't exist yet in the DB so it always shows
+  if (!_conversations['broadcast_support']) {
+    _conversations['broadcast_support'] = { isBroadcast: true };
+  }
+
   const convArr = Object.entries(_conversations)
-    .filter(([_, c]) => c.members && c.members[_currentUser.uid])
-    .sort(([, a], [, b]) => (b.lastMessage?.timestamp || 0) - (a.lastMessage?.timestamp || 0));
+    .filter(([id, c]) => id === 'broadcast_support' || (c.members && c.members[_currentUser.uid]))
+    .sort(([idA, a], [idB, b]) => {
+      if (idA === 'broadcast_support') return -1;
+      if (idB === 'broadcast_support') return 1;
+      return (b.lastMessage?.timestamp || 0) - (a.lastMessage?.timestamp || 0);
+    });
 
   // Filter by search
   const filtered = [];
@@ -264,14 +275,14 @@ async function _renderList(listEl) {
 
   listEl.innerHTML = '';
   for (const { id, conv, name } of filtered) {
-    const avatar = await _getConvAvatar(conv);
+    const avatar = await _getConvAvatar(conv, id);
     const item = document.createElement('div');
     item.className = `sb-item${_activeConvId === id ? ' active' : ''}`;
     item.dataset.convId = id;
 
     const avatarHtml = avatar.type === 'url'
       ? `<img class="sb-item-avatar" src="${avatar.value}" alt="">`
-      : `<div class="sb-item-avatar-letter">${avatar.value}</div>`;
+      : `<div class="sb-item-avatar-letter"${avatar.isEmoji ? ' style="background:transparent; border:1px solid rgba(255,255,255,0.1); font-size:1.5rem;"' : ''}>${avatar.value}</div>`;
 
     const avatarWrap = `
       <div class="sb-avatar-wrap">

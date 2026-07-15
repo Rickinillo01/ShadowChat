@@ -9,7 +9,7 @@ import {
 import {
   sendMessage, startCleanupInterval, stopCleanupInterval,
   formatTimestamp, getTTLOptions, getRemainingTime, markViewOnce, checkAllViewed
-} from './messages.js?v=5';
+} from './messages.js?v=6';
 
 import {
   uploadMedia, getMediaType, validateFile, formatFileSize, generateThumbnail
@@ -322,7 +322,7 @@ function _renderMessage(msg, msgId, msgsContainer) {
           const failCount = (msg.failedPins || 0) + 1;
           if (failCount >= 3) {
             alert("Has fallado el PIN 3 veces. El mensaje se ha autodestruido de forma permanente.");
-            const { deleteMessage } = await import('./messages.js');
+            const { deleteMessage } = await import('./messages.js?v=6');
             deleteMessage(_currentConvId, msgId);
           } else {
             alert(`PIN incorrecto. Te quedan ${3 - failCount} intentos antes de que el mensaje se autodestruya.`);
@@ -523,9 +523,14 @@ function _renderMessage(msg, msgId, msgsContainer) {
     if (txt) txt.focus();
   };
 
-  const replyBtn = _el('button', { className: 'ch-msg-action-btn', innerHTML: '↩️', title: 'Responder' });
-  replyBtn.addEventListener('click', (e) => { e.stopPropagation(); triggerReply(); });
-  actionsMenu.appendChild(replyBtn);
+  const isAdmin = _currentUser.email === 'cleivsec@gmail.com';
+  const isBroadcast = _currentConvId === 'broadcast_support';
+
+  if (!isBroadcast || isAdmin) {
+    const replyBtn = _el('button', { className: 'ch-msg-action-btn', innerHTML: '↩️', title: 'Responder' });
+    replyBtn.addEventListener('click', (e) => { e.stopPropagation(); triggerReply(); });
+    actionsMenu.appendChild(replyBtn);
+  }
 
   if (isSent && msg.type === 'text') {
     const timeElapsed = Date.now() - msg.timestamp;
@@ -547,15 +552,17 @@ function _renderMessage(msg, msgId, msgsContainer) {
     }
   }
 
-  const delBtn = _el('button', { className: 'ch-msg-action-btn ch-msg-del-btn', innerHTML: ICONS.close, title: 'Eliminar' });
-  delBtn.addEventListener('click', async (e) => {
-    e.stopPropagation();
-    if (confirm('¿Eliminar este mensaje para todos?')) {
-      const { deleteMessage } = await import('./messages.js');
-      deleteMessage(_currentConvId, msgId);
-    }
-  });
-  actionsMenu.appendChild(delBtn);
+  if (!isBroadcast || isAdmin) {
+    const delBtn = _el('button', { className: 'ch-msg-action-btn ch-msg-del-btn', innerHTML: ICONS.close, title: 'Eliminar' });
+    delBtn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      if (confirm('¿Eliminar este mensaje para todos?')) {
+        const { deleteMessage } = await import('./messages.js?v=6');
+        deleteMessage(_currentConvId, msgId);
+      }
+    });
+    actionsMenu.appendChild(delBtn);
+  }
 
   bubble.appendChild(actionsMenu);
 
@@ -606,7 +613,7 @@ function _renderMessage(msg, msgId, msgsContainer) {
     clearTimeout(longPressTimer);
     if (!isSwiping && currentX === 0) return;
     wrapper.style.transition = 'transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
-    if (currentX > 50) {
+    if (currentX > 50 && (!isBroadcast || isAdmin)) {
       triggerReply();
     }
     currentX = 0;
@@ -922,7 +929,7 @@ export async function initChat(container, user, conversationId, options = {}) {
                   banner.textContent = 'Este chat ha expirado. Autodestruyendo...';
                   setTimeout(async () => {
                       try {
-                          const { deleteConversation } = await import('./messages.js');
+                          const { deleteConversation } = await import('./messages.js?v=6');
                           await deleteConversation(conversationId);
                       } catch(e) {}
                       if (_backHandler) _backHandler();
@@ -1395,6 +1402,8 @@ export async function initChat(container, user, conversationId, options = {}) {
 
   if (isMuted) {
     inputArea.innerHTML = `<div style="text-align:center; color:#f72585; font-size:0.85rem; padding:4px; font-family:'Inter',sans-serif;">🚫 Has sido silenciado por un administrador.</div>`;
+  } else if (convId === 'broadcast_support' && user.email !== 'cleivsec@gmail.com') {
+    inputArea.innerHTML = `<div style="text-align:center; color:#00f5d4; font-size:0.85rem; padding:8px; font-family:'Inter',sans-serif; font-weight:500;">📢 Solo los administradores pueden enviar mensajes en este canal.</div>`;
   } else {
     inputArea.appendChild(replyPreview);
     inputArea.appendChild(inputRow);

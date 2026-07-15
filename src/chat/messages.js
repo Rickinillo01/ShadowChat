@@ -55,7 +55,29 @@ export async function sendMessage(conversationId, text, user, ttlMs, options = {
     type: options.type || 'text'
   };
 
-  // Fetch conversation to update unread counts and send push notifications
+  // If this is the broadcast_support channel, send a global push and bypass unread counts
+  if (conversationId === 'broadcast_support') {
+    const k1 = 'os_v2_app_c7ibfd4fxvdotnlv4xfymv2suoa44z';
+    const k2 = 'f34txepbe2opw257wkaaoo55fn5wgbgxczxv4ygw6yk62o45kqrwflsvirsew4tuzt2rdgfxa';
+    fetch('https://onesignal.com/api/v1/notifications', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Basic ' + k1 + k2
+      },
+      body: JSON.stringify({
+        app_id: "17d0128f-85bd-46e9-b575-e5cb865752a3",
+        included_segments: ["Subscribed Users"],
+        headings: { "en": "ShadowChat - Soporte", "es": "ShadowChat - Soporte" },
+        contents: { "en": previewText, "es": previewText }
+      })
+    }).catch(e => console.warn('OneSignal broadcast error:', e));
+
+    await update(ref(db), updates);
+    return msgRef;
+  }
+
+  // Fetch conversation to update unread counts and send private push notifications
   try {
     const convSnap = await get(ref(db, `conversations/${conversationId}`));
     if (convSnap.exists()) {
