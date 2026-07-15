@@ -1,0 +1,72 @@
+name: Build iOS IPA
+
+on:
+  workflow_dispatch: # Allows manual trigger from GitHub Actions tab
+
+jobs:
+  build-ios:
+    name: Build iOS App (Unsigned IPA)
+    runs-on: macos-latest
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Create Temporary Package.json
+        run: |
+          echo '{
+            "name": "shadowchat",
+            "version": "1.0.0",
+            "dependencies": {
+              "@capacitor/core": "^6.0.0",
+              "@capacitor/ios": "^6.0.0",
+              "cordova-plugin-camera": "^8.0.0",
+              "onesignal-cordova-plugin": "^5.1.8"
+            },
+            "devDependencies": {
+              "@capacitor/cli": "^6.0.0",
+              "@capacitor/assets": "^3.0.5"
+            }
+          }' > package.json
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Initialize Capacitor
+        run: |
+          npx cap init ShadowChat com.rickinillo.shadowchat --web-dir .
+          npx cap add ios
+          npx cap sync ios
+
+      - name: Generate iOS Icons & Splash
+        run: |
+          mkdir assets
+          cp icon.jpg assets/icon.jpg
+          mv assets/icon.jpg assets/icon.png
+          npx @capacitor/assets generate --ios
+
+      - name: Build Xcode Project
+        run: |
+          cd ios/App
+          # We build an unsigned archive
+          xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -sdk iphoneos build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
+
+      - name: Create Payload and IPA
+        run: |
+          cd ios/App
+          mkdir -p Payload
+          # Move the compiled .app into the Payload folder
+          mv build/Release-iphoneos/App.app Payload/
+          # Zip it up as an .ipa file
+          zip -r ShadowChat.ipa Payload
+
+      - name: Upload IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ShadowChat-iOS
+          path: ios/App/ShadowChat.ipa
