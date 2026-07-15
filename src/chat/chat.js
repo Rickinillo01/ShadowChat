@@ -845,9 +845,13 @@ export async function initChat(container, user, conversationId, options = {}) {
   const badge = _el('span', { className: 'ch-badge' });
 
   // Fetch conversation info
-  try {
-    const convSnap = await get(ref(db, `conversations/${conversationId}`));
-    if (convSnap.exists()) {
+  if (conversationId === 'broadcast_support') {
+    convName.textContent = 'ShadowChat - Soporte';
+    badge.textContent = '📢 Canal Oficial';
+  } else {
+    try {
+      const convSnap = await get(ref(db, `conversations/${conversationId}`));
+      if (convSnap.exists()) {
       const conv = convSnap.val();
       _memberCount = Object.keys(conv.members || {}).length;
       badge.textContent = `${_memberCount} miembros`;
@@ -963,12 +967,13 @@ export async function initChat(container, user, conversationId, options = {}) {
         }
       });
       _listeners.push({ ref: typingRef, type: 'value' });
-    } else {
-      convName.textContent = 'Conversación no encontrada';
+      } else {
+        convName.textContent = 'Conversación no encontrada';
+      }
+    } catch (e) {
+      console.error('Error loading conv name:', e);
+      convName.textContent = 'Error';
     }
-  } catch (e) {
-    console.error('Error loading conv name:', e);
-    convName.textContent = 'Error';
   }
 
   const timerBtn = _el('button', { className: 'ch-hdr-btn ch-timer-btn', innerHTML: ICONS.timer, title: 'Autodestrucción: ' + getTTLOptions()[_currentTTLIndex].label });
