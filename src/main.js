@@ -87,23 +87,23 @@ async function loadAuthModule() {
     return authModule;
 }
 async function loadChatModule() {
-    if (!chatModule) chatModule = await import('./chat/chat.js?v=27');
+    if (!chatModule) chatModule = await import('./chat/chat.js');
     return chatModule;
 }
 async function loadLayoutModule() {
-    if (!layoutModule) layoutModule = await import('./chat/layout.js?v=3');
+    if (!layoutModule) layoutModule = await import('./chat/layout.js');
     return layoutModule;
 }
 async function loadSidebarModule() {
-    if (!sidebarModule) sidebarModule = await import('./chat/sidebar.js?v=9');
+    if (!sidebarModule) sidebarModule = await import('./chat/sidebar.js');
     return sidebarModule;
 }
 async function loadNewConvModule() {
-    if (!newConvModule) newConvModule = await import('./chat/newConversation.js?v=5');
+    if (!newConvModule) newConvModule = await import('./chat/newConversation.js');
     return newConvModule;
 }
 async function loadProfileModule() {
-    if (!profileModule) profileModule = await import('./chat/profile.js?v=6');
+    if (!profileModule) profileModule = await import('./chat/profile.js');
     return profileModule;
 }
 
