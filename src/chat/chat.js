@@ -1476,6 +1476,57 @@ export async function initChat(container, user, conversationId, options = {}) {
     }
   }
 
+  const camWrap = _el('div', { className: 'ch-cam-wrap' });
+  const cameraBtn = _el('button', { className: 'ch-camera-btn', innerHTML: ICONS.camera });
+  const camPopup = _el('div', { 
+    className: 'ch-cam-popup',
+    innerHTML: `
+      <div class="cam-opt" id="opt-photo">📸 Hacer foto</div>
+      <div class="cam-opt" id="opt-video">🎥 Grabar vídeo</div>
+    `
+  });
+  
+  const cameraInput = _el('input', { type: 'file', accept: 'image/*', capture: 'environment', style: 'display:none' });
+  const videoInput = _el('input', { type: 'file', accept: 'video/*', capture: 'environment', style: 'display:none' });
+  
+  camWrap.appendChild(cameraBtn);
+  camWrap.appendChild(camPopup);
+  camWrap.appendChild(cameraInput);
+  camWrap.appendChild(videoInput);
+
+  cameraBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    camPopup.classList.toggle('show');
+  });
+  
+  document.addEventListener('click', (e) => {
+    if (!camWrap.contains(e.target)) {
+      camPopup.classList.remove('show');
+    }
+  });
+
+  camPopup.querySelector('#opt-photo').addEventListener('click', () => {
+    camPopup.classList.remove('show');
+    cameraInput.click();
+  });
+
+  camPopup.querySelector('#opt-video').addEventListener('click', () => {
+    camPopup.classList.remove('show');
+    videoInput.click();
+  });
+  
+  cameraInput.addEventListener('change', async () => {
+    _fileType = 'image';
+    _handleFileSelection(cameraInput.files[0], 'image');
+    cameraInput.value = '';
+  });
+
+  videoInput.addEventListener('change', async () => {
+    _fileType = 'video';
+    _handleFileSelection(videoInput.files[0], 'video');
+    videoInput.value = '';
+  });
+
   inputRow.appendChild(stickerWrap);
   inputRow.appendChild(camWrap);
   inputRow.appendChild(sendBtn);
