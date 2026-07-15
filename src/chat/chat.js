@@ -1408,14 +1408,15 @@ export async function initChat(container, user, conversationId, options = {}) {
     addStickerBtn.innerHTML = '<div style="width:20px;height:20px;border:2px solid #00f5d4;border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite;"></div>';
     try {
       const { uploadMedia } = await import('./media.js');
-      const url = await uploadMedia(file, 'image');
-      
-      const snap = await get(ref(db, `users/${user.uid}/stickers`));
-      const stickers = snap.exists() ? snap.val() : [];
-      stickers.push(url);
-      await set(ref(db, `users/${user.uid}/stickers`), stickers);
-      
-      _loadStickers();
+      const media = await uploadMedia(file, 'image');
+      if (media && media.url) {
+        const snap = await get(ref(db, `users/${user.uid}/stickers`));
+        let stickers = snap.exists() ? snap.val() : [];
+        stickers = stickers.filter(s => typeof s === 'string' && s.startsWith('http'));
+        stickers.unshift(media.url);
+        await set(ref(db, `users/${user.uid}/stickers`), stickers);
+        _loadStickers();
+      }
     } catch(err) {
       alert("Error subiendo sticker: " + err.message);
     }
@@ -1427,7 +1428,8 @@ export async function initChat(container, user, conversationId, options = {}) {
     stickerGrid.appendChild(addStickerBtn);
     const snap = await get(ref(db, `users/${user.uid}/stickers`));
     if (snap.exists()) {
-      const urls = snap.val();
+      const rawStickers = snap.val();
+      const urls = Array.isArray(rawStickers) ? rawStickers.filter(s => typeof s === 'string' && s.startsWith('http')) : [];
       urls.forEach((url, idx) => {
         const img = _el('img', { className: 'ch-sticker-item', src: url });
         
