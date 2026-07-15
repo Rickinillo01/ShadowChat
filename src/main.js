@@ -421,6 +421,7 @@ async function init() {
             });
         } catch (error) {
             console.error('[ShadowChat] Error:', error);
+            alert("Init Error: " + error.message);
         }
     }, 2500); // 2.5 seconds of glitch animation
 }
