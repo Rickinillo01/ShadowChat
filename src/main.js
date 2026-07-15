@@ -8,6 +8,16 @@ function initNativeOneSignal() {
     if (window.plugins && window.plugins.OneSignal) {
         try {
             window.plugins.OneSignal.initialize("17d0128f-85bd-46e9-b575-e5cb865752a3");
+            
+            // Prevent notifications from showing a banner when the app is in the foreground
+            if (window.plugins.OneSignal.Notifications && window.plugins.OneSignal.Notifications.addEventListener) {
+                window.plugins.OneSignal.Notifications.addEventListener("foregroundWillDisplay", (event) => {
+                    if (event && typeof event.preventDefault === 'function') {
+                        event.preventDefault();
+                    }
+                });
+            }
+
             window.plugins.OneSignal.Notifications.requestPermission(true).then((accepted) => {
                 console.log("User accepted notifications: " + accepted);
             });
@@ -71,7 +81,7 @@ async function loadAuthModule() {
     return authModule;
 }
 async function loadChatModule() {
-    if (!chatModule) chatModule = await import('./chat/chat.js?v=13');
+    if (!chatModule) chatModule = await import('./chat/chat.js?v=14');
     return chatModule;
 }
 async function loadLayoutModule() {

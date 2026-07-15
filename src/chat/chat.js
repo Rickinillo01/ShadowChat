@@ -177,6 +177,11 @@ function _injectStyles() {
     .ch-input::placeholder { color:rgba(255,255,255,0.2); }
     .ch-send-btn, .ch-camera-btn { background:rgba(0,245,212,0.15); border:none; color:#00f5d4; cursor:pointer; width:36px; height:36px; padding:0; border-radius:50%; display:flex; align-items:center; justify-content:center; transition:all 0.2s; flex-shrink:0; }
     .ch-send-btn:hover, .ch-camera-btn:hover { background:rgba(0,245,212,0.25); transform:scale(1.08); }
+    .ch-cam-wrap { position:relative; display:flex; align-items:center; }
+    .ch-cam-popup { position:absolute; bottom:50px; right:-10px; background:#1e1e2e; border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:8px; display:none; flex-direction:column; gap:8px; box-shadow:0 10px 25px rgba(0,0,0,0.5); z-index:100; }
+    .ch-cam-popup.show { display:flex; animation:pfFadeIn 0.2s ease; }
+    .cam-opt { padding:10px 16px; border-radius:8px; color:#fff; font-size:0.9rem; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:8px; transition:background 0.2s; white-space:nowrap; }
+    .cam-opt:hover { background:rgba(255,255,255,0.1); }
     .ch-send-btn.recording { background:rgba(247,37,133,0.15); color:#f72585; animation:chPulse 1.5s infinite; }
     @keyframes chPulse { 0% { box-shadow:0 0 0 0 rgba(247,37,133,0.4); } 70% { box-shadow:0 0 0 10px rgba(247,37,133,0); } 100% { box-shadow:0 0 0 0 rgba(247,37,133,0); } }
     .ch-recording-ui { display:flex; align-items:center; gap:8px; flex:1; padding:10px 14px; background:rgba(247,37,133,0.05); border-radius:20px; color:#f72585; font-size:0.88rem; font-family:'Inter',sans-serif; min-width:0; overflow:hidden; }
@@ -1317,13 +1322,43 @@ export async function initChat(container, user, conversationId, options = {}) {
   inputRow.appendChild(drawerWrap);
   inputRow.appendChild(textInput);
   
+  const camWrap = _el('div', { className: 'ch-cam-wrap' });
   const cameraBtn = _el('button', { className: 'ch-camera-btn', innerHTML: ICONS.camera });
-  const cameraInput = _el('input', { type: 'file', accept: 'image/*', capture: 'environment', style: 'display:none' });
+  const camPopup = _el('div', { 
+    className: 'ch-cam-popup',
+    innerHTML: `
+      <div class="cam-opt" id="opt-photo">📸 Hacer foto</div>
+      <div class="cam-opt" id="opt-video">🎥 Grabar vídeo</div>
+    `
+  });
   
-  cameraBtn.addEventListener('click', () => {
-    // HTML5 native camera is 100% reliable on Android WebViews, requires no Cordova plugins, 
-    // handles permissions automatically, and avoids OOM crashes.
+  const cameraInput = _el('input', { type: 'file', accept: 'image/*', capture: 'environment', style: 'display:none' });
+  const videoInput = _el('input', { type: 'file', accept: 'video/*', capture: 'environment', style: 'display:none' });
+  
+  camWrap.appendChild(cameraBtn);
+  camWrap.appendChild(camPopup);
+  camWrap.appendChild(cameraInput);
+  camWrap.appendChild(videoInput);
+
+  cameraBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    camPopup.classList.toggle('show');
+  });
+  
+  document.addEventListener('click', (e) => {
+    if (!camWrap.contains(e.target)) {
+      camPopup.classList.remove('show');
+    }
+  });
+
+  camPopup.querySelector('#opt-photo').addEventListener('click', () => {
+    camPopup.classList.remove('show');
     cameraInput.click();
+  });
+
+  camPopup.querySelector('#opt-video').addEventListener('click', () => {
+    camPopup.classList.remove('show');
+    videoInput.click();
   });
   
   cameraInput.addEventListener('change', async () => {
@@ -1332,8 +1367,13 @@ export async function initChat(container, user, conversationId, options = {}) {
     cameraInput.value = '';
   });
 
-  inputRow.appendChild(cameraBtn);
-  inputRow.appendChild(cameraInput);
+  videoInput.addEventListener('change', async () => {
+    _fileType = 'video';
+    _handleFileSelection(videoInput.files[0], 'video');
+    videoInput.value = '';
+  });
+
+  inputRow.appendChild(camWrap);
   inputRow.appendChild(sendBtn);
 
   const uSnap = await get(ref(db, `users/${user.uid}`));
