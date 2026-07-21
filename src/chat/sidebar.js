@@ -244,29 +244,28 @@ async function _renderList(listEl) {
       return (b.lastMessage?.timestamp || 0) - (a.lastMessage?.timestamp || 0);
     });
 
-  // Filter by search
-  const filtered = [];
-  for (const [id, conv] of convArr) {
-    let name = await _getConvDisplayName(conv, id);
-    
-    
+  // Prepare data concurrently for massive speedup
+  const preparedData = await Promise.all(convArr.map(async ([id, conv]) => {
     if (conv.isTemp) {
       if (conv.expiresAt && Date.now() > conv.expiresAt) {
-        // Cleanup expired temporary conversation
         set(ref(db, `conversations/${id}`), null).catch(()=>{});
         set(ref(db, `messages/${id}`), null).catch(()=>{});
-        continue;
+        return null;
       }
     }
     
-    if (_searchTerm && !name.toLowerCase().includes(_searchTerm.toLowerCase())) continue;
+    let name = await _getConvDisplayName(conv, id);
+    if (_searchTerm && !name.toLowerCase().includes(_searchTerm.toLowerCase())) return null;
 
     if (conv.isTemp) {
       name = `<span style="color: #ef4444; text-shadow: 0 0 8px rgba(239, 68, 68, 0.4);">⏳ ${name}</span>`;
     }
     
-    filtered.push({ id, conv, name });
-  }
+    const avatar = await _getConvAvatar(conv, id);
+    return { id, conv, name, avatar };
+  }));
+
+  const filtered = preparedData.filter(item => item !== null);
 
   if (filtered.length === 0) {
     listEl.innerHTML = `<div class="sb-empty">No hay conversaciones${_searchTerm ? ' que coincidan' : ''}</div>`;
@@ -274,8 +273,14 @@ async function _renderList(listEl) {
   }
 
   listEl.innerHTML = '';
-  for (const { id, conv, name } of filtered) {
-    const avatar = await _getConvAvatar(conv, id);
+  // Re-sort to maintain order after Promise.all
+  filtered.sort((a, b) => {
+    if (a.id === 'broadcast_support') return -1;
+    if (b.id === 'broadcast_support') return 1;
+    return (b.conv.lastMessage?.timestamp || 0) - (a.conv.lastMessage?.timestamp || 0);
+  });
+
+  for (const { id, conv, name, avatar } of filtered) {
     const item = document.createElement('div');
     item.className = `sb-item${_activeConvId === id ? ' active' : ''}`;
     item.dataset.convId = id;

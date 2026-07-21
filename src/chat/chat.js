@@ -3,7 +3,7 @@
 // =============================================================================
 
 import {
-  db, auth, ref, onValue, onChildAdded, onChildRemoved, onChildChanged, off, get, set, update, remove
+  db, auth, ref, onValue, onChildAdded, onChildRemoved, onChildChanged, off, get, set, update, remove, query, limitToLast
 } from '../firebase.js';
 
 import {
@@ -1686,8 +1686,9 @@ export async function initChat(container, user, conversationId, options = {}) {
   // ── Firebase Listeners ──
   let firstLoad = true;
   const msgsRef = ref(db, `messages/${conversationId}`);
+  const msgsQuery = query(msgsRef, limitToLast(50));
 
-  const addedUnsub = onChildAdded(msgsRef, (snapshot) => {
+  const addedUnsub = onChildAdded(msgsQuery, (snapshot) => {
     const msg = snapshot.val();
     if (!msg) return;
 
@@ -1723,9 +1724,9 @@ export async function initChat(container, user, conversationId, options = {}) {
       requestAnimationFrame(() => msgsContainer.scrollTop = msgsContainer.scrollHeight);
     }
   });
-  _listeners.push({ ref: msgsRef, type: 'child_added' });
+  _listeners.push({ ref: msgsQuery, type: 'child_added' });
 
-  const removedUnsub = onChildRemoved(msgsRef, (snapshot) => {
+  const removedUnsub = onChildRemoved(msgsQuery, (snapshot) => {
     const el = msgsContainer.querySelector(`[data-msg-id="${snapshot.key}"]`);
     if (el) {
       el.style.opacity = '0';
@@ -1734,9 +1735,9 @@ export async function initChat(container, user, conversationId, options = {}) {
       setTimeout(() => el.remove(), 300);
     }
   });
-  _listeners.push({ ref: msgsRef, type: 'child_removed' });
+  _listeners.push({ ref: msgsQuery, type: 'child_removed' });
 
-  const changedUnsub = onChildChanged(msgsRef, (snapshot) => {
+  const changedUnsub = onChildChanged(msgsQuery, (snapshot) => {
     const msg = snapshot.val();
     const el = msgsContainer.querySelector(`[data-msg-id="${snapshot.key}"]`);
     if (el && msg) {
@@ -1765,7 +1766,7 @@ export async function initChat(container, user, conversationId, options = {}) {
       }
     }
   });
-  _listeners.push({ ref: msgsRef, type: 'child_changed' });
+  _listeners.push({ ref: msgsQuery, type: 'child_changed' });
 
   // Progress bar updater
   _progressIntervalId = setInterval(() => {
