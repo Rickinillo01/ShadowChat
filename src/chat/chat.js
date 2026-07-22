@@ -1177,7 +1177,7 @@ export async function initChat(container, user, conversationId, options = {}) {
       parent.replaceChild(document.createTextNode(mark.textContent), mark);
       parent.normalize();
     });
-    msgsContainer.querySelectorAll('.ch-msg-wrapper').forEach(el => el.style.opacity = '1');
+    msgsContainer.querySelectorAll('.ch-msg').forEach(el => el.style.opacity = '1');
     
     _searchResults = [];
     _searchIndex = -1;
@@ -1185,7 +1185,7 @@ export async function initChat(container, user, conversationId, options = {}) {
     if (!query) return;
     
     // Search in DOM
-    const msgs = Array.from(msgsContainer.querySelectorAll('.ch-msg-wrapper'));
+    const msgs = Array.from(msgsContainer.querySelectorAll('.ch-msg'));
     
     msgs.forEach(msgEl => {
       const textEl = msgEl.querySelector('.ch-msg-text');
@@ -1235,7 +1235,7 @@ export async function initChat(container, user, conversationId, options = {}) {
     if (!el) return;
     
     // Reset opacities
-    msgsContainer.querySelectorAll('.ch-msg-wrapper').forEach(e => {
+    msgsContainer.querySelectorAll('.ch-msg').forEach(e => {
        e.style.opacity = _searchResults.includes(e) ? '1' : '0.4';
     });
     el.style.opacity = '1';
