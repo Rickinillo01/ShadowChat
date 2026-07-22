@@ -1386,6 +1386,7 @@ export async function initChat(container, user, conversationId, options = {}) {
   };
 
   let _typingTimeout = null;
+  let _isTyping = false;
 
   textInput.addEventListener('input', () => {
     textInput.style.height = 'auto';
@@ -1394,9 +1395,15 @@ export async function initChat(container, user, conversationId, options = {}) {
 
     // Typing indicator
     if (_currentConvId && _currentUser) {
-      set(ref(db, `conversations/${_currentConvId}/typing/${_currentUser.uid}`), Date.now());
+      if (!_isTyping) {
+        _isTyping = true;
+        // Solo envía la señal a Firebase la primera vez que empezamos a escribir, no en cada letra
+        set(ref(db, `conversations/${_currentConvId}/typing/${_currentUser.uid}`), Date.now());
+      }
+      
       clearTimeout(_typingTimeout);
       _typingTimeout = setTimeout(() => {
+        _isTyping = false;
         set(ref(db, `conversations/${_currentConvId}/typing/${_currentUser.uid}`), null);
       }, 2000);
     }
