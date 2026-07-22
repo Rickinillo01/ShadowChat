@@ -598,6 +598,24 @@ function _renderMessage(msg, msgId, msgsContainer) {
     });
     actionsMenu.appendChild(delBtn);
   }
+  
+  // Save button
+  const saveBtn = _el('button', { className: 'ch-msg-action-btn', innerHTML: '⭐', title: 'Guardar/Desguardar' });
+  saveBtn.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    try {
+      const savedRef = ref(db, `users/${_currentUser.uid}/savedMessages/${_currentConvId}/${msgId}`);
+      const snap = await get(savedRef);
+      if (snap.exists()) {
+        await set(savedRef, null);
+      } else {
+        await set(savedRef, true);
+      }
+    } catch (err) {
+      console.error('Error saving message:', err);
+    }
+  });
+  actionsMenu.appendChild(saveBtn);
 
   bubble.appendChild(actionsMenu);
 
@@ -1074,93 +1092,164 @@ export async function initChat(container, user, conversationId, options = {}) {
   // ── Search Bar ──
   const searchBar = _el('div', { className: 'ch-search-bar', style: 'display: none; padding: 10px 16px; background: #12121a; border-bottom: 1px solid rgba(255,255,255,0.06); align-items: center; gap: 10px;' });
   const searchInput = _el('input', { type: 'text', placeholder: 'Buscar palabra o YYYY-MM-DD...', style: 'flex: 1; padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.2); color: #fff; font-size: 0.9rem; outline: none;' });
-  const searchClose = _el('button', { innerHTML: ICONS.close, style: 'background: none; border: none; color: rgba(255,255,255,0.5); cursor: pointer;' });
+  
+  const searchNav = _el('div', { style: 'display: flex; gap: 5px;' });
+  const searchUp = _el('button', { innerHTML: '▲', style: 'background: rgba(255,255,255,0.1); border: none; color: #fff; padding: 4px 8px; border-radius: 4px; cursor: pointer;' });
+  const searchDown = _el('button', { innerHTML: '▼', style: 'background: rgba(255,255,255,0.1); border: none; color: #fff; padding: 4px 8px; border-radius: 4px; cursor: pointer;' });
+  searchNav.appendChild(searchUp);
+  searchNav.appendChild(searchDown);
+
+  const searchClose = _el('button', { innerHTML: ICONS.close, style: 'background: none; border: none; color: rgba(255,255,255,0.5); cursor: pointer; margin-left: 5px;' });
   
   searchBar.appendChild(searchInput);
+  searchBar.appendChild(searchNav);
   searchBar.appendChild(searchClose);
   wrap.appendChild(searchBar);
   
   let _searchIsActive = false;
   let _fullHistoryCache = null;
+  let _searchResults = [];
+  let _searchIndex = -1;
+  let _originalDOM = null; // To restore standard view
   
   searchBtn.addEventListener('click', async () => {
     _searchIsActive = !_searchIsActive;
     if (_searchIsActive) {
       searchBar.style.display = 'flex';
-      searchInput.focus();
       if (!_fullHistoryCache) {
         searchInput.placeholder = 'Cargando historial...';
         searchInput.disabled = true;
         try {
-          // Download FULL history once for searching
           const snap = await get(ref(db, `messages/${conversationId}`));
           _fullHistoryCache = snap.exists() ? snap.val() : {};
         } catch(e) {}
         searchInput.disabled = false;
         searchInput.placeholder = 'Buscar palabra o YYYY-MM-DD...';
-        searchInput.focus();
+        
+        // Save current DOM and render full history for contextual search
+        _originalDOM = Array.from(msgsContainer.childNodes);
+        msgsContainer.innerHTML = '';
+        const allMsgs = Object.entries(_fullHistoryCache)
+           .map(([id, msg]) => ({id, ...msg}))
+           .sort((a,b) => a.timestamp - b.timestamp);
+        
+        allMsgs.forEach(msg => _renderMessage(msg, msg.id, msgsContainer, false));
       }
+      searchInput.focus();
     } else {
-      searchBar.style.display = 'none';
-      searchInput.value = '';
-      _renderFilteredMessages(); // Reset to normal view
+      _closeSearch();
     }
   });
   
-  searchClose.addEventListener('click', () => {
+  searchClose.addEventListener('click', _closeSearch);
+  
+  function _closeSearch() {
     _searchIsActive = false;
     searchBar.style.display = 'none';
     searchInput.value = '';
-    _renderFilteredMessages();
-  });
+    
+    // Restore original limited DOM
+    if (_originalDOM) {
+      msgsContainer.innerHTML = '';
+      _originalDOM.forEach(node => msgsContainer.appendChild(node));
+      _originalDOM = null;
+    }
+    
+    // Clear highlights
+    msgsContainer.querySelectorAll('mark.ch-highlight').forEach(mark => {
+      const parent = mark.parentNode;
+      parent.replaceChild(document.createTextNode(mark.textContent), mark);
+      parent.normalize();
+    });
+    
+    _fullHistoryCache = null; // Free memory
+    _searchResults = [];
+    _searchIndex = -1;
+    requestAnimationFrame(() => msgsContainer.scrollTop = msgsContainer.scrollHeight);
+  }
   
   searchInput.addEventListener('input', () => {
-    _renderFilteredMessages(searchInput.value.trim().toLowerCase());
+    const query = searchInput.value.trim().toLowerCase();
+    
+    // Remove existing highlights
+    msgsContainer.querySelectorAll('mark.ch-highlight').forEach(mark => {
+      const parent = mark.parentNode;
+      parent.replaceChild(document.createTextNode(mark.textContent), mark);
+      parent.normalize();
+    });
+    msgsContainer.querySelectorAll('.ch-msg-wrapper').forEach(el => el.style.opacity = '1');
+    
+    _searchResults = [];
+    _searchIndex = -1;
+    
+    if (!query) return;
+    
+    // Search in DOM
+    const msgs = Array.from(msgsContainer.querySelectorAll('.ch-msg-wrapper'));
+    
+    msgs.forEach(msgEl => {
+      const textEl = msgEl.querySelector('.ch-msg-text');
+      if (!textEl) return;
+      
+      const originalText = textEl.textContent;
+      const lowerText = originalText.toLowerCase();
+      
+      // Also check date
+      const timeEl = msgEl.querySelector('.ch-msg-time');
+      const timeStr = timeEl ? timeEl.dataset.fullDate || '' : ''; // Assume we add dataset later or just check text
+      
+      if (lowerText.includes(query) || (timeStr && timeStr.includes(query))) {
+         _searchResults.push(msgEl);
+         
+         // Highlight text
+         if (lowerText.includes(query)) {
+           const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+           textEl.innerHTML = originalText.replace(regex, '<mark class="ch-highlight" style="background:#ffdd00; color:#000; padding:0 2px; border-radius:2px;">$1</mark>');
+         }
+      }
+    });
+    
+    if (_searchResults.length > 0) {
+      // Go to most recent by default (which is the last one in the array)
+      _searchIndex = _searchResults.length - 1;
+      _jumpToSearch();
+    }
   });
   
-  function _renderFilteredMessages(query = '') {
-    if (!query) {
-      // Show normal messages, hide search ones
-      msgsContainer.querySelectorAll('.ch-msg-wrapper').forEach(el => {
-        if (el.dataset.isSearch) el.remove();
-        else el.style.display = 'flex';
-      });
-      return;
-    }
+  searchUp.addEventListener('click', () => {
+    if (_searchResults.length === 0) return;
+    _searchIndex--;
+    if (_searchIndex < 0) _searchIndex = _searchResults.length - 1;
+    _jumpToSearch();
+  });
+  
+  searchDown.addEventListener('click', () => {
+    if (_searchResults.length === 0) return;
+    _searchIndex++;
+    if (_searchIndex >= _searchResults.length) _searchIndex = 0;
+    _jumpToSearch();
+  });
+  
+  function _jumpToSearch() {
+    const el = _searchResults[_searchIndex];
+    if (!el) return;
     
-    // Hide standard messages
-    msgsContainer.querySelectorAll('.ch-msg-wrapper').forEach(el => {
-      if (!el.dataset.isSearch) el.style.display = 'none';
-      else el.remove();
+    // Reset opacities
+    msgsContainer.querySelectorAll('.ch-msg-wrapper').forEach(e => {
+       e.style.opacity = _searchResults.includes(e) ? '1' : '0.4';
     });
+    el.style.opacity = '1';
     
-    if (!_fullHistoryCache) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     
-    // Filter and sort by timestamp
-    const results = Object.entries(_fullHistoryCache).map(([id, msg]) => ({id, ...msg}))
-      .filter(msg => {
-        if (msg.type !== 'text') return false; // Can only search text
-        if (msg.text && msg.text.toLowerCase().includes(query)) return true;
-        // Search by date (YYYY-MM-DD)
-        if (msg.timestamp) {
-          const d = new Date(msg.timestamp);
-          const dateStr = d.toISOString().split('T')[0];
-          if (dateStr.includes(query)) return true;
-        }
-        return false;
-      })
-      .sort((a, b) => a.timestamp - b.timestamp);
-      
-    if (results.length === 0) {
-      const empty = _el('div', { className: 'ch-empty', textContent: 'No se encontraron resultados.' });
-      empty.dataset.isSearch = 'true';
-      msgsContainer.appendChild(empty);
-      return;
-    }
-    
-    results.forEach(msg => {
-      _renderMessage(msg, msg.id, msgsContainer, true);
-    });
+    // Add pulse animation
+    el.style.transition = 'transform 0.3s, box-shadow 0.3s';
+    el.style.transform = 'scale(1.02)';
+    el.style.boxShadow = '0 0 15px rgba(255,221,0,0.5)';
+    setTimeout(() => {
+      el.style.transform = 'scale(1)';
+      el.style.boxShadow = 'none';
+    }, 600);
   }
 
   // ── Messages ──
@@ -1916,14 +2005,16 @@ async function _openUserInfoModal(conversationId) {
   const otherUid = Object.keys(conv.members || {}).find(uid => uid !== userObj.uid);
   if (!otherUid) return;
   
-  const [uSnap, cSnap, msgsSnap] = await Promise.all([
+  const [uSnap, cSnap, msgsSnap, savedSnap] = await Promise.all([
     get(ref(db, `users/${otherUid}`)),
     get(ref(db, `users/${userObj.uid}/contacts/${otherUid}`)),
-    get(ref(db, `messages/${conversationId}`))
+    get(ref(db, `messages/${conversationId}`)),
+    get(ref(db, `users/${userObj.uid}/savedMessages/${conversationId}`))
   ]);
   
   const userData = uSnap.exists() ? uSnap.val() : {};
   const localName = cSnap.exists() ? cSnap.val() : null;
+  const savedMsgs = savedSnap.exists() ? savedSnap.val() : {};
   
   const displayName = localName || userData.username || 'Usuario';
   const usernameStr = userData.username ? `@${userData.username}` : '@usuario';
@@ -1931,13 +2022,28 @@ async function _openUserInfoModal(conversationId) {
   const avatarUrl = userData.photoURL || null;
   
   const mediaItems = [];
+  const voiceItems = [];
+  const linkItems = [];
+  const savedItems = [];
+  
   if (msgsSnap.exists()) {
-    Object.values(msgsSnap.val()).forEach(msg => {
-       if (msg.mediaURL && (msg.type === 'image' || msg.type === 'video')) {
-         mediaItems.push(msg);
+    Object.entries(msgsSnap.val()).forEach(([id, msg]) => {
+       msg.id = id;
+       // Media
+       if (msg.mediaURL && (msg.type === 'image' || msg.type === 'video')) mediaItems.push(msg);
+       // Voice
+       if (msg.mediaURL && msg.type === 'audio') voiceItems.push(msg);
+       // Links
+       if (msg.type === 'text' && msg.text && msg.text.match(/https?:\/\/[^\s]+/g)) {
+         linkItems.push({ ...msg, links: msg.text.match(/https?:\/\/[^\s]+/g) });
        }
+       // Saved
+       if (savedMsgs[id]) savedItems.push(msg);
     });
   }
+  
+  // Sort descending
+  [mediaItems, voiceItems, linkItems, savedItems].forEach(arr => arr.sort((a,b) => b.timestamp - a.timestamp));
   
   // Create UI
   const overlay = document.createElement('div');
@@ -2020,40 +2126,120 @@ async function _openUserInfoModal(conversationId) {
   const tabs = document.createElement('div');
   tabs.className = 'ch-uinfo-tabs';
   tabs.innerHTML = `
-    <div class="ch-uinfo-tab active">Media</div>
-    <div class="ch-uinfo-tab">Saved</div>
-    <div class="ch-uinfo-tab">Links</div>
-    <div class="ch-uinfo-tab">Voice</div>
+    <div class="ch-uinfo-tab active" data-tab="media">Media</div>
+    <div class="ch-uinfo-tab" data-tab="saved">Saved</div>
+    <div class="ch-uinfo-tab" data-tab="links">Links</div>
+    <div class="ch-uinfo-tab" data-tab="voice">Voice</div>
   `;
   
-  // Media Grid
-  const mediaGrid = document.createElement('div');
-  mediaGrid.className = 'ch-uinfo-media-grid';
+  const contentArea = document.createElement('div');
+  contentArea.className = 'ch-uinfo-content';
+  contentArea.style.flex = '1';
   
-  if (mediaItems.length === 0) {
-    mediaGrid.innerHTML = `<div style="text-align:center; padding: 20px; color:rgba(255,255,255,0.4); grid-column: 1/-1;">No hay multimedia</div>`;
-  } else {
-    // Sort by timestamp desc
-    mediaItems.sort((a,b) => b.timestamp - a.timestamp).forEach(m => {
-      const el = document.createElement('div');
-      el.className = 'ch-uinfo-media-item';
-      if (m.type === 'video') {
-         el.innerHTML = `<video src="${m.mediaURL}" muted loop></video>`;
-         // Play on hover
-         el.onmouseenter = () => el.querySelector('video').play().catch(()=>{});
-         el.onmouseleave = () => el.querySelector('video').pause();
+  const _renderEmpty = () => `<div style="text-align:center; padding: 40px 20px; color:rgba(255,255,255,0.4);">no se han encontrado mensajes</div>`;
+  
+  const _renderTab = (tabName) => {
+    contentArea.innerHTML = '';
+    
+    if (tabName === 'media') {
+      const grid = document.createElement('div');
+      grid.className = 'ch-uinfo-media-grid';
+      if (mediaItems.length === 0) {
+        grid.innerHTML = _renderEmpty();
+        grid.style.display = 'block';
       } else {
-         el.style.backgroundImage = `url(${m.mediaURL})`;
+        mediaItems.forEach(m => {
+          const el = document.createElement('div');
+          el.className = 'ch-uinfo-media-item';
+          if (m.type === 'video') {
+             el.innerHTML = `<video src="${m.mediaURL}" muted loop></video>`;
+             el.onmouseenter = () => el.querySelector('video').play().catch(()=>{});
+             el.onmouseleave = () => el.querySelector('video').pause();
+          } else {
+             el.style.backgroundImage = `url(${m.mediaURL})`;
+          }
+          grid.appendChild(el);
+        });
       }
-      mediaGrid.appendChild(el);
+      contentArea.appendChild(grid);
+    } 
+    else if (tabName === 'saved') {
+      const list = document.createElement('div');
+      list.style.padding = '16px';
+      if (savedItems.length === 0) list.innerHTML = _renderEmpty();
+      else {
+        savedItems.forEach(m => {
+          const el = document.createElement('div');
+          el.style.padding = '12px';
+          el.style.background = 'rgba(255,255,255,0.05)';
+          el.style.borderRadius = '8px';
+          el.style.marginBottom = '8px';
+          el.innerHTML = `<div style="color:rgba(255,255,255,0.5); font-size:0.75rem; margin-bottom:4px;">${new Date(m.timestamp).toLocaleString()}</div><div>${m.text || (m.type === 'image' ? '📷 Foto' : m.type === 'audio' ? '🎤 Audio' : '🎥 Video')}</div>`;
+          list.appendChild(el);
+        });
+      }
+      contentArea.appendChild(list);
+    }
+    else if (tabName === 'links') {
+      const list = document.createElement('div');
+      list.style.padding = '16px';
+      if (linkItems.length === 0) list.innerHTML = _renderEmpty();
+      else {
+        linkItems.forEach(m => {
+          m.links.forEach(l => {
+            const el = document.createElement('a');
+            el.href = l;
+            el.target = '_blank';
+            el.style.display = 'block';
+            el.style.padding = '12px';
+            el.style.background = 'rgba(255,255,255,0.05)';
+            el.style.borderRadius = '8px';
+            el.style.marginBottom = '8px';
+            el.style.color = '#00f5d4';
+            el.style.textDecoration = 'none';
+            el.style.wordBreak = 'break-all';
+            el.textContent = l;
+            list.appendChild(el);
+          });
+        });
+      }
+      contentArea.appendChild(list);
+    }
+    else if (tabName === 'voice') {
+      const list = document.createElement('div');
+      list.style.padding = '16px';
+      if (voiceItems.length === 0) list.innerHTML = _renderEmpty();
+      else {
+        voiceItems.forEach(m => {
+          const el = document.createElement('div');
+          el.style.padding = '12px';
+          el.style.background = 'rgba(255,255,255,0.05)';
+          el.style.borderRadius = '8px';
+          el.style.marginBottom = '8px';
+          el.innerHTML = `<div style="color:rgba(255,255,255,0.5); font-size:0.75rem; margin-bottom:4px;">${new Date(m.timestamp).toLocaleString()}</div><audio src="${m.mediaURL}" controls style="width:100%; height:32px;"></audio>`;
+          list.appendChild(el);
+        });
+      }
+      contentArea.appendChild(list);
+    }
+  };
+  
+  tabs.querySelectorAll('.ch-uinfo-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabs.querySelectorAll('.ch-uinfo-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      _renderTab(tab.dataset.tab);
     });
-  }
+  });
+  
+  // Render default
+  _renderTab('media');
   
   overlay.appendChild(header);
   overlay.appendChild(profileSec);
   overlay.appendChild(infoCard);
   overlay.appendChild(tabs);
-  overlay.appendChild(mediaGrid);
+  overlay.appendChild(contentArea);
   
   document.body.appendChild(overlay);
   
