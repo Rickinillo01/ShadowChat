@@ -876,6 +876,14 @@ export async function initChat(container, user, conversationId, options = {}) {
   
   headerInfoWrap.appendChild(convNameWrap);
   headerInfoWrap.appendChild(subtitleRow);
+  
+  // Click listener for User Info Modal
+  convNameWrap.style.cursor = 'pointer';
+  convNameWrap.addEventListener('click', () => {
+    if (conversationId !== 'broadcast_support') {
+      _openUserInfoModal(conversationId);
+    }
+  });
 
   const badge = _el('span', { className: 'ch-badge' });
 
@@ -1017,6 +1025,10 @@ export async function initChat(container, user, conversationId, options = {}) {
 
   const hideIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" y1="2" x2="22" y2="22"/></svg>`;
   const hideBtn = _el('button', { className: 'ch-hdr-btn ch-hide', innerHTML: hideIcon, title: 'Limpiar pantalla' });
+  
+  const searchIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>`;
+  const searchBtn = _el('button', { className: 'ch-hdr-btn', innerHTML: searchIcon, title: 'Buscar mensajes' });
+  
   let _isHidden = false;
   hideBtn.addEventListener('click', () => {
     _isHidden = !_isHidden;
@@ -1052,10 +1064,104 @@ export async function initChat(container, user, conversationId, options = {}) {
   header.appendChild(backBtn);
   header.appendChild(headerInfoWrap);
   header.appendChild(badge);
+  header.appendChild(searchBtn);
   header.appendChild(hideBtn);
   header.appendChild(ttlDropWrap);
   header.appendChild(panicBtn);
+
   wrap.appendChild(header);
+  
+  // ── Search Bar ──
+  const searchBar = _el('div', { className: 'ch-search-bar', style: 'display: none; padding: 10px 16px; background: #12121a; border-bottom: 1px solid rgba(255,255,255,0.06); align-items: center; gap: 10px;' });
+  const searchInput = _el('input', { type: 'text', placeholder: 'Buscar palabra o YYYY-MM-DD...', style: 'flex: 1; padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.2); color: #fff; font-size: 0.9rem; outline: none;' });
+  const searchClose = _el('button', { innerHTML: ICONS.close, style: 'background: none; border: none; color: rgba(255,255,255,0.5); cursor: pointer;' });
+  
+  searchBar.appendChild(searchInput);
+  searchBar.appendChild(searchClose);
+  wrap.appendChild(searchBar);
+  
+  let _searchIsActive = false;
+  let _fullHistoryCache = null;
+  
+  searchBtn.addEventListener('click', async () => {
+    _searchIsActive = !_searchIsActive;
+    if (_searchIsActive) {
+      searchBar.style.display = 'flex';
+      searchInput.focus();
+      if (!_fullHistoryCache) {
+        searchInput.placeholder = 'Cargando historial...';
+        searchInput.disabled = true;
+        try {
+          // Download FULL history once for searching
+          const snap = await get(ref(db, `messages/${conversationId}`));
+          _fullHistoryCache = snap.exists() ? snap.val() : {};
+        } catch(e) {}
+        searchInput.disabled = false;
+        searchInput.placeholder = 'Buscar palabra o YYYY-MM-DD...';
+        searchInput.focus();
+      }
+    } else {
+      searchBar.style.display = 'none';
+      searchInput.value = '';
+      _renderFilteredMessages(); // Reset to normal view
+    }
+  });
+  
+  searchClose.addEventListener('click', () => {
+    _searchIsActive = false;
+    searchBar.style.display = 'none';
+    searchInput.value = '';
+    _renderFilteredMessages();
+  });
+  
+  searchInput.addEventListener('input', () => {
+    _renderFilteredMessages(searchInput.value.trim().toLowerCase());
+  });
+  
+  function _renderFilteredMessages(query = '') {
+    if (!query) {
+      // Show normal messages, hide search ones
+      msgsContainer.querySelectorAll('.ch-msg-wrapper').forEach(el => {
+        if (el.dataset.isSearch) el.remove();
+        else el.style.display = 'flex';
+      });
+      return;
+    }
+    
+    // Hide standard messages
+    msgsContainer.querySelectorAll('.ch-msg-wrapper').forEach(el => {
+      if (!el.dataset.isSearch) el.style.display = 'none';
+      else el.remove();
+    });
+    
+    if (!_fullHistoryCache) return;
+    
+    // Filter and sort by timestamp
+    const results = Object.entries(_fullHistoryCache).map(([id, msg]) => ({id, ...msg}))
+      .filter(msg => {
+        if (msg.type !== 'text') return false; // Can only search text
+        if (msg.text && msg.text.toLowerCase().includes(query)) return true;
+        // Search by date (YYYY-MM-DD)
+        if (msg.timestamp) {
+          const d = new Date(msg.timestamp);
+          const dateStr = d.toISOString().split('T')[0];
+          if (dateStr.includes(query)) return true;
+        }
+        return false;
+      })
+      .sort((a, b) => a.timestamp - b.timestamp);
+      
+    if (results.length === 0) {
+      const empty = _el('div', { className: 'ch-empty', textContent: 'No se encontraron resultados.' });
+      empty.dataset.isSearch = 'true';
+      msgsContainer.appendChild(empty);
+      return;
+    }
+    
+    results.forEach(msg => {
+      _renderMessage(msg, msg.id, msgsContainer, true);
+    });
+  }
 
   // ── Messages ──
   const msgsContainer = _el('div', { className: 'ch-msgs' });
@@ -1788,6 +1894,172 @@ export async function initChat(container, user, conversationId, options = {}) {
   document.addEventListener('click', (e) => {
     if (!attachWrap.contains(e.target)) attachMenu.classList.remove('open');
     if (!ttlDropWrap.contains(e.target)) ttlDrop.classList.remove('open');
+  });
+}
+
+/**
+ * User Info Modal
+ */
+async function _openUserInfoModal(conversationId) {
+  const userObj = auth.currentUser;
+  if (!userObj) return;
+
+  const convSnap = await get(ref(db, `conversations/${conversationId}`));
+  if (!convSnap.exists()) return;
+  const conv = convSnap.val();
+  
+  if (conv.type === 'group') {
+    alert("Perfiles de grupo aún no disponibles.");
+    return;
+  }
+  
+  const otherUid = Object.keys(conv.members || {}).find(uid => uid !== userObj.uid);
+  if (!otherUid) return;
+  
+  const [uSnap, cSnap, msgsSnap] = await Promise.all([
+    get(ref(db, `users/${otherUid}`)),
+    get(ref(db, `users/${userObj.uid}/contacts/${otherUid}`)),
+    get(ref(db, `messages/${conversationId}`))
+  ]);
+  
+  const userData = uSnap.exists() ? uSnap.val() : {};
+  const localName = cSnap.exists() ? cSnap.val() : null;
+  
+  const displayName = localName || userData.username || 'Usuario';
+  const usernameStr = userData.username ? `@${userData.username}` : '@usuario';
+  const emailStr = userData.email || 'Oculto';
+  const avatarUrl = userData.photoURL || null;
+  
+  const mediaItems = [];
+  if (msgsSnap.exists()) {
+    Object.values(msgsSnap.val()).forEach(msg => {
+       if (msg.mediaURL && (msg.type === 'image' || msg.type === 'video')) {
+         mediaItems.push(msg);
+       }
+    });
+  }
+  
+  // Create UI
+  const overlay = document.createElement('div');
+  overlay.className = 'ch-user-info-modal';
+  
+  // Header
+  const header = document.createElement('div');
+  header.className = 'ch-uinfo-header';
+  const closeBtn = document.createElement('button');
+  closeBtn.innerHTML = ICONS.close;
+  closeBtn.onclick = () => overlay.remove();
+  const title = document.createElement('h2');
+  title.textContent = 'User Info';
+  header.appendChild(closeBtn);
+  header.appendChild(title);
+  
+  // Profile
+  const profileSec = document.createElement('div');
+  profileSec.className = 'ch-uinfo-profile';
+  const avatar = document.createElement('div');
+  avatar.className = 'ch-uinfo-avatar';
+  if (avatarUrl) {
+    avatar.style.backgroundImage = `url(${avatarUrl})`;
+  } else {
+    avatar.textContent = displayName.charAt(0).toUpperCase();
+  }
+  const nameEl = document.createElement('h3');
+  nameEl.textContent = displayName;
+  const statusEl = document.createElement('p');
+  statusEl.className = 'ch-uinfo-status';
+  statusEl.innerHTML = '<span class="ch-uinfo-dots">•••</span> online'; // We could listen to real status, static for now
+  
+  profileSec.appendChild(avatar);
+  profileSec.appendChild(nameEl);
+  profileSec.appendChild(statusEl);
+  
+  // Info Card
+  const infoCard = document.createElement('div');
+  infoCard.className = 'ch-uinfo-card';
+  
+  // Email Row (replaces phone)
+  const emailRow = document.createElement('div');
+  emailRow.className = 'ch-uinfo-row';
+  emailRow.innerHTML = `
+    <div class="ch-uinfo-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg></div>
+    <div class="ch-uinfo-text">
+      <div class="ch-uinfo-val">${emailStr}</div>
+      <div class="ch-uinfo-lbl">Email</div>
+    </div>
+  `;
+  
+  // Username Row
+  const userRow = document.createElement('div');
+  userRow.className = 'ch-uinfo-row';
+  userRow.innerHTML = `
+    <div class="ch-uinfo-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"></circle><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94"></path></svg></div>
+    <div class="ch-uinfo-text">
+      <div class="ch-uinfo-val">${usernameStr}</div>
+      <div class="ch-uinfo-lbl">Username</div>
+    </div>
+    <div class="ch-uinfo-qr"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg></div>
+  `;
+  
+  // Notif Row
+  const notifRow = document.createElement('div');
+  notifRow.className = 'ch-uinfo-row';
+  notifRow.innerHTML = `
+    <div class="ch-uinfo-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg></div>
+    <div class="ch-uinfo-text" style="flex:1;">
+      <div class="ch-uinfo-val">Notifications</div>
+    </div>
+    <div class="ch-uinfo-toggle active"><div class="ch-uinfo-toggle-knob"></div></div>
+  `;
+  
+  infoCard.appendChild(emailRow);
+  infoCard.appendChild(userRow);
+  infoCard.appendChild(notifRow);
+  
+  // Tabs
+  const tabs = document.createElement('div');
+  tabs.className = 'ch-uinfo-tabs';
+  tabs.innerHTML = `
+    <div class="ch-uinfo-tab active">Media</div>
+    <div class="ch-uinfo-tab">Saved</div>
+    <div class="ch-uinfo-tab">Links</div>
+    <div class="ch-uinfo-tab">Voice</div>
+  `;
+  
+  // Media Grid
+  const mediaGrid = document.createElement('div');
+  mediaGrid.className = 'ch-uinfo-media-grid';
+  
+  if (mediaItems.length === 0) {
+    mediaGrid.innerHTML = `<div style="text-align:center; padding: 20px; color:rgba(255,255,255,0.4); grid-column: 1/-1;">No hay multimedia</div>`;
+  } else {
+    // Sort by timestamp desc
+    mediaItems.sort((a,b) => b.timestamp - a.timestamp).forEach(m => {
+      const el = document.createElement('div');
+      el.className = 'ch-uinfo-media-item';
+      if (m.type === 'video') {
+         el.innerHTML = `<video src="${m.mediaURL}" muted loop></video>`;
+         // Play on hover
+         el.onmouseenter = () => el.querySelector('video').play().catch(()=>{});
+         el.onmouseleave = () => el.querySelector('video').pause();
+      } else {
+         el.style.backgroundImage = `url(${m.mediaURL})`;
+      }
+      mediaGrid.appendChild(el);
+    });
+  }
+  
+  overlay.appendChild(header);
+  overlay.appendChild(profileSec);
+  overlay.appendChild(infoCard);
+  overlay.appendChild(tabs);
+  overlay.appendChild(mediaGrid);
+  
+  document.body.appendChild(overlay);
+  
+  // Trigger animation
+  requestAnimationFrame(() => {
+    overlay.classList.add('open');
   });
 }
 
