@@ -231,6 +231,9 @@ function _injectStyles() {
     .ch-ttl-option { padding:8px 16px; border-radius:6px; cursor:pointer; font-size:0.82rem; color:rgba(255,255,255,0.6); transition:all 0.15s; white-space:nowrap; }
     .ch-ttl-option:hover { background:rgba(0,245,212,0.08); color:#00f5d4; }
     .ch-ttl-option.active { color:#00f5d4; font-weight:600; }
+
+    .ch-date-divider-wrap { display:flex; justify-content:center; width:100%; margin:14px 0 8px 0; pointer-events:none; z-index:1; }
+    .ch-date-divider { background:#182229; color:#8696a0; font-size:0.76rem; font-weight:500; padding:4px 12px; border-radius:8px; box-shadow:0 1px 2px rgba(0,0,0,0.3); text-transform:none; letter-spacing:0.2px; border: 1px solid rgba(255,255,255,0.03); font-family:'Inter',sans-serif; }
   `;
   document.head.appendChild(s);
 }
@@ -246,6 +249,46 @@ function _formatAudioTime(secs) {
   const m = Math.floor(secs / 60);
   const s = Math.floor(secs % 60);
   return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+function _formatDateDivider(timestamp) {
+  const d = new Date(timestamp);
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const target = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const diffDays = Math.round((today - target) / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) {
+    return 'Hoy';
+  } else if (diffDays === 1) {
+    return 'Ayer';
+  } else if (diffDays >= 2 && diffDays < 7) {
+    const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+    return days[d.getDay()];
+  } else {
+    const months = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+    const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+    const dayName = days[d.getDay()];
+    const monthName = months[d.getMonth()];
+    const dayNum = d.getDate();
+    if (d.getFullYear() !== now.getFullYear()) {
+      return `${dayNum} de ${monthName} de ${d.getFullYear()}`;
+    }
+    return `${dayName} ${dayNum} de ${monthName}`;
+  }
+}
+
+function _insertDateDividerIfNeeded(timestamp, msgsContainer) {
+  if (!timestamp || !msgsContainer) return;
+  const d = new Date(timestamp);
+  const dayKey = `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+  if (!msgsContainer.querySelector(`.ch-date-divider[data-date="${dayKey}"]`)) {
+    const wrap = _el('div', { className: 'ch-date-divider-wrap' });
+    const pill = _el('span', { className: 'ch-date-divider', textContent: _formatDateDivider(timestamp) });
+    pill.dataset.date = dayKey;
+    wrap.appendChild(pill);
+    msgsContainer.appendChild(wrap);
+  }
 }
 
 // ─── Message Rendering ──────────────────────────────────────
@@ -684,6 +727,10 @@ function _renderMessage(msg, msgId, msgsContainer) {
   }, { passive: true });
 
   wrapper.appendChild(bubble);
+
+  if (msg.timestamp) {
+    _insertDateDividerIfNeeded(msg.timestamp, msgsContainer);
+  }
 
   msgsContainer.appendChild(wrapper);
 }
