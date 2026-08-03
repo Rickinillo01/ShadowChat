@@ -298,13 +298,28 @@ export function showProfileModal(container, currentUser, onUpdate) {
     saveBtn.disabled = true;
     saveBtn.textContent = 'Guardando...';
     try {
-      const newName = usernameInput.value.trim();
+      const cleanName = usernameInput.value.trim().replace(/^@/, '');
       const newPassword = passwordInput.value.trim();
 
-      if (newName !== currentUser.displayName) {
-        if (!newName) throw new Error('El nombre no puede estar vacío');
-        await updateProfile(currentUser, { displayName: newName });
-        await set(ref(db, `users/${currentUser.uid}/username`), newName);
+      if (cleanName !== currentUser.displayName) {
+        if (!cleanName || cleanName.length < 2) throw new Error('El nombre de usuario debe tener al menos 2 caracteres');
+        
+        // Validate uniqueness in usernames table if not guest/anon
+        if (!currentUser.isAnonymous) {
+           const uSnap = await get(ref(db, `usernames/${cleanName.toLowerCase()}`));
+           if (uSnap.exists() && uSnap.val() !== currentUser.uid) {
+              throw new Error('Este @username ya está siendo utilizado por otra persona.');
+           }
+           // Free up old username if existed
+           if (currentUser.displayName) {
+              await set(ref(db, `usernames/${currentUser.displayName.trim().replace(/^@/, '').toLowerCase()}`), null);
+           }
+           // Reserve new username
+           await set(ref(db, `usernames/${cleanName.toLowerCase()}`), currentUser.uid);
+        }
+
+        await updateProfile(currentUser, { displayName: cleanName });
+        await set(ref(db, `users/${currentUser.uid}/username`), cleanName);
       }
 
       if (newPassword) {
@@ -317,7 +332,7 @@ export function showProfileModal(container, currentUser, onUpdate) {
 
       msgArea.innerHTML = `<div class="pf-msg success">Cambios guardados correctamente</div>`;
       setTimeout(() => { msgArea.innerHTML = ''; }, 2000);
-      if (onUpdate) onUpdate({ photoURL: currentUser.photoURL, displayName: newName });
+      if (onUpdate) onUpdate({ photoURL: currentUser.photoURL, displayName: cleanName });
     } catch (err) {
       console.error(err);
       if (err.code === 'auth/requires-recent-login') {

@@ -228,12 +228,115 @@ async function initChatUI(user, hideSidebar = false) {
     } catch(e) {
         console.warn("Error checking tutorial state:", e);
     }
+
+    if (!user.isAnonymous && !hideSidebar) {
+        verifyOrRequireUsername(user).catch(err => console.warn("Error in username verification:", err));
+    }
+}
+
+async function verifyOrRequireUsername(user) {
+    const { get, set, update, ref, db } = await import('./firebase.js');
+    if (user.email) {
+        update(ref(db, `users/${user.uid}`), { email: user.email.toLowerCase().trim() }).catch(()=>{});
+    }
+
+    const userSnap = await get(ref(db, `users/${user.uid}`));
+    let currentUsername = user.displayName || (userSnap.exists() ? userSnap.val().username : '');
+    currentUsername = (currentUsername || '').trim().replace(/^@/, '');
+
+    let isUnique = false;
+    if (currentUsername && currentUsername.length >= 2) {
+        const uSnap = await get(ref(db, `usernames/${currentUsername.toLowerCase()}`));
+        if (!uSnap.exists() || uSnap.val() === user.uid) {
+            await set(ref(db, `usernames/${currentUsername.toLowerCase()}`), user.uid);
+            await update(ref(db, `users/${user.uid}`), { username: currentUsername });
+            isUnique = true;
+        }
+    }
+
+    if (isUnique) return;
+
+    // Display mandatory Username Setup modal
+    const modalOverlay = document.createElement('div');
+    modalOverlay.className = 'sc-mandatory-username-modal';
+    modalOverlay.style.cssText = "position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.85); backdrop-filter:blur(10px); display:flex; align-items:center; justify-content:center; font-family:'Inter',sans-serif;";
+    modalOverlay.innerHTML = `
+      <div style="background:#11111b; border:1px solid rgba(0,245,212,0.3); border-radius:16px; width:90%; max-width:420px; padding:24px; box-shadow:0 0 50px rgba(0,245,212,0.15); display:flex; flex-direction:column; gap:16px;">
+        <h2 style="color:#fff; margin:0; font-size:1.3rem; font-weight:700;">Configura tu @username</h2>
+        <p style="color:rgba(255,255,255,0.7); font-size:0.9rem; line-height:1.5; margin:0;">
+          Para proteger tu privacidad y permitir que otros te busquen sin compartir tu email, necesitas un <strong>nombre de usuario único</strong>. No se puede repetir ni dejar vacío.
+        </p>
+        <div>
+          <label style="display:block; color:rgba(255,255,255,0.5); font-size:0.8rem; margin-bottom:6px;">Nombre de usuario (@usuario)</label>
+          <div style="position:relative; display:flex; align-items:center;">
+            <span style="position:absolute; left:14px; color:#00f5d4; font-weight:600; font-size:1rem;">@</span>
+            <input id="setup-username-input" placeholder="tu_apodo_unico" maxlength="25" style="width:100%; padding:12px 12px 12px 34px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:10px; color:#fff; font-size:1rem; outline:none; font-family:'Inter',sans-serif;" />
+          </div>
+          <div id="setup-username-error" style="color:#f87171; font-size:0.82rem; margin-top:8px; min-height:1.2em;"></div>
+        </div>
+        <button id="setup-username-submit" style="padding:13px; background:linear-gradient(135deg, #00f5d4, #00c4a7); color:#0a0a0f; font-weight:700; border:none; border-radius:10px; cursor:pointer; font-size:0.95rem; transition:transform 0.2s;">Guardar username</button>
+      </div>
+    `;
+    document.body.appendChild(modalOverlay);
+
+    const input = modalOverlay.querySelector('#setup-username-input');
+    const errDiv = modalOverlay.querySelector('#setup-username-error');
+    const submitBtn = modalOverlay.querySelector('#setup-username-submit');
+
+    if (currentUsername) input.value = currentUsername;
+    setTimeout(() => input.focus(), 100);
+
+    submitBtn.addEventListener('click', async () => {
+        const val = input.value.trim().replace(/^@/, '');
+        if (val.length < 2) {
+            errDiv.textContent = 'El nombre de usuario debe tener al menos 2 caracteres.';
+            return;
+        }
+        if (!/^[a-zA-Z0-9._-]+$/.test(val)) {
+            errDiv.textContent = 'Solo se permiten letras, números, puntos, guiones y subguiones.';
+            return;
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Comprobando disponibilidad...';
+        errDiv.textContent = '';
+
+        try {
+            const uCheck = await get(ref(db, `usernames/${val.toLowerCase()}`));
+            if (uCheck.exists() && uCheck.val() !== user.uid) {
+                errDiv.textContent = 'Este @username ya está siendo usado por otra persona.';
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Guardar username';
+                return;
+            }
+
+            if (currentUsername && currentUsername !== val) {
+                await set(ref(db, `usernames/${currentUsername.toLowerCase()}`), null).catch(()=>{});
+            }
+            await set(ref(db, `usernames/${val.toLowerCase()}`), user.uid);
+            await update(ref(db, `users/${user.uid}`), { username: val });
+            
+            const { updateProfile } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js');
+            await updateProfile(user, { displayName: val });
+
+            modalOverlay.remove();
+        } catch(e) {
+            console.error(e);
+            errDiv.textContent = 'Error al guardar el username. Inténtalo de nuevo.';
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Guardar username';
+        }
+    });
 }
 
 // ── History API Back Button Handling ───────────────────────
 history.replaceState({ view: 'sidebar' }, "Sidebar", "");
 
 window.addEventListener('popstate', (e) => {
+    if (document.querySelector('.sc-mandatory-username-modal')) {
+        history.pushState(e.state || { view: 'sidebar' }, document.title, window.location.href);
+        return;
+    }
     const modals = document.querySelectorAll('.nc-overlay, .pf-overlay, .sc-tutorial-overlay');
     if (modals.length > 0) {
         history.pushState(e.state || { view: 'sidebar' }, document.title, window.location.href);

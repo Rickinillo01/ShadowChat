@@ -157,8 +157,8 @@ export async function showNewConversationModal(container, currentUser, onCreated
         <input class="nc-input" id="nc-group-name" placeholder="Ej: Equipo secreto..." maxlength="40">
       </div>
       <div>
-        <div class="nc-label">Buscar usuarios</div>
-        <input class="nc-input" id="nc-search" placeholder="Buscar...">
+        <div class="nc-label">Buscar usuarios (por email o @username)</div>
+        <input class="nc-input" id="nc-search" placeholder="Buscar por @usuario o correo...">
       </div>
       <div class="nc-user-list" id="nc-user-list"></div>
     </div>
@@ -181,9 +181,13 @@ export async function showNewConversationModal(container, currentUser, onCreated
 
   // Render user list
   function renderUsers(filter = '') {
-    const filtered = allUsers.filter(u =>
-      (u.customName || u.username || u.displayName || '').toLowerCase().includes(filter.toLowerCase())
-    );
+    const cleanFilter = filter.trim().toLowerCase().replace(/^@/, '');
+    const filtered = allUsers.filter(u => {
+      const name = (u.customName || u.displayName || '').toLowerCase();
+      const uname = (u.username || '').toLowerCase().replace(/^@/, '');
+      const email = (u.email || '').toLowerCase();
+      return name.includes(cleanFilter) || uname.includes(cleanFilter) || email.includes(cleanFilter) || filter === '' || (filter.startsWith('@') && ('@' + uname).includes(filter.toLowerCase()));
+    });
 
     if (filtered.length === 0) {
       userList.innerHTML = `<div class="nc-no-users">No se encontraron usuarios</div>`;
@@ -195,14 +199,21 @@ export async function showNewConversationModal(container, currentUser, onCreated
       const item = document.createElement('div');
       item.className = `nc-user-item${selectedUsers.has(u.uid) ? ' selected' : ''}`;
 
-      const displayName = u.customName || u.username || u.displayName || 'Usuario';
+      const displayName = u.customName || u.displayName || u.username || 'Usuario';
       const avatarHtml = u.photoURL
         ? `<img class="nc-user-avatar" src="${u.photoURL}" alt="">`
         : `<div class="nc-user-avatar-letter">${displayName[0].toUpperCase()}</div>`;
 
+      const unameDisplay = u.username ? (u.username.startsWith('@') ? u.username : '@' + u.username) : '';
+      const emailDisplay = u.email && u.email !== 'anon@shadowchat.app' ? u.email : '';
+      const subText = [unameDisplay, emailDisplay].filter(Boolean).join(' • ');
+
       item.innerHTML = `
         ${avatarHtml}
-        <div class="nc-user-name">${displayName}</div>
+        <div class="nc-user-name">
+          <div style="font-weight:600; line-height:1.2;">${displayName}</div>
+          ${subText ? `<div style="font-size:0.76rem; color:rgba(255,255,255,0.45); margin-top:2px;">${subText}</div>` : ''}
+        </div>
         <div class="nc-user-check"></div>
       `;
 

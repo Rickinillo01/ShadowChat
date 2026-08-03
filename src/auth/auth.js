@@ -645,15 +645,28 @@ async function handleRegister(email, password, username, errorEl, submitBtn, onA
   setLoading(submitBtn, true);
 
   try {
+    const cleanUsername = username.trim().replace(/^@/, '');
+    if (!cleanUsername || cleanUsername.length < 2) {
+      throw new Error('username-too-short');
+    }
+
+    // Check if username is already taken in Firebase RTDB
+    const usernameSnap = await get(ref(db, `usernames/${cleanUsername.toLowerCase()}`));
+    if (usernameSnap.exists()) {
+      throw new Error('username-taken');
+    }
+
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
 
     // Set display name
-    await updateProfile(user, { displayName: username });
+    await updateProfile(user, { displayName: cleanUsername });
 
-    // Save user data to database
+    // Claim username in table and save user data to database
+    await set(ref(db, `usernames/${cleanUsername.toLowerCase()}`), user.uid);
     await set(ref(db, `users/${user.uid}`), {
-      username: username,
+      username: cleanUsername,
+      email: email.toLowerCase().trim(),
       online: true,
       lastSeen: Date.now()
     });
@@ -661,7 +674,10 @@ async function handleRegister(email, password, username, errorEl, submitBtn, onA
     onAuthSuccess(user);
   } catch (error) {
     console.error('Registration error:', error);
-    showError(errorEl, getSpanishError(error.code));
+    let msg = getSpanishError(error.code || '');
+    if (error.message === 'username-taken') msg = 'Este @username ya está en uso. Por favor, elige otro.';
+    if (error.message === 'username-too-short') msg = 'El nombre de usuario debe tener al menos 2 caracteres.';
+    showError(errorEl, msg);
   } finally {
     setLoading(submitBtn, false);
   }
