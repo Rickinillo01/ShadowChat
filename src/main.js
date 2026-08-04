@@ -241,40 +241,38 @@ async function verifyOrRequireUsername(user) {
     }
 
     const userSnap = await get(ref(db, `users/${user.uid}`));
-    let currentUsername = user.displayName || (userSnap.exists() ? userSnap.val().username : '');
+    const userData = userSnap.exists() ? userSnap.val() : {};
+    
+    // Once the user has completed this popup setup, don't show it again
+    if (userData.usernameSetupComplete === true) return;
+
+    let currentUsername = user.displayName || userData.username || '';
     currentUsername = (currentUsername || '').trim().replace(/^@/, '');
 
-    let isUnique = false;
-    if (currentUsername && currentUsername.length >= 2) {
-        const uSnap = await get(ref(db, `usernames/${currentUsername.toLowerCase()}`));
-        if (!uSnap.exists() || uSnap.val() === user.uid) {
-            await set(ref(db, `usernames/${currentUsername.toLowerCase()}`), user.uid);
-            await update(ref(db, `users/${user.uid}`), { username: currentUsername });
-            isUnique = true;
-        }
-    }
-
-    if (isUnique) return;
-
-    // Display mandatory Username Setup modal
+    // Display mandatory Username Setup / Arrival Announcement modal
     const modalOverlay = document.createElement('div');
     modalOverlay.className = 'sc-mandatory-username-modal';
-    modalOverlay.style.cssText = "position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.85); backdrop-filter:blur(10px); display:flex; align-items:center; justify-content:center; font-family:'Inter',sans-serif;";
+    modalOverlay.style.cssText = "position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.88); backdrop-filter:blur(12px); display:flex; align-items:center; justify-content:center; font-family:'Inter',sans-serif; animation: fadeIn 0.3s ease;";
     modalOverlay.innerHTML = `
-      <div style="background:#11111b; border:1px solid rgba(0,245,212,0.3); border-radius:16px; width:90%; max-width:420px; padding:24px; box-shadow:0 0 50px rgba(0,245,212,0.15); display:flex; flex-direction:column; gap:16px;">
-        <h2 style="color:#fff; margin:0; font-size:1.3rem; font-weight:700;">Configura tu @username</h2>
-        <p style="color:rgba(255,255,255,0.7); font-size:0.9rem; line-height:1.5; margin:0;">
-          Para proteger tu privacidad y permitir que otros te busquen sin compartir tu email, necesitas un <strong>nombre de usuario único</strong>. No se puede repetir ni dejar vacío.
-        </p>
+      <div style="background:linear-gradient(145deg, #16162a, #10101d); border:1px solid rgba(0,245,212,0.35); border-radius:20px; width:90%; max-width:440px; padding:28px 24px; box-shadow:0 10px 50px rgba(0,245,212,0.18); display:flex; flex-direction:column; gap:18px; text-align:center;">
+        <div style="width:56px; height:56px; border-radius:50%; background:rgba(0,245,212,0.1); border:1px solid rgba(0,245,212,0.3); display:flex; align-items:center; justify-content:center; margin:0 auto; font-size:1.6rem;">
+          ✨
+        </div>
         <div>
-          <label style="display:block; color:rgba(255,255,255,0.5); font-size:0.8rem; margin-bottom:6px;">Nombre de usuario (@usuario)</label>
+          <h2 style="color:#fff; margin:0 0 8px 0; font-size:1.35rem; font-weight:800; letter-spacing:0.3px;">¡Han llegado los @Usernames!</h2>
+          <p style="color:rgba(255,255,255,0.72); font-size:0.92rem; line-height:1.55; margin:0;">
+            Hemos actualizado ShadowChat. Ahora cada usuario cuenta con un <strong>nombre de usuario único</strong> para que tus contactos puedan buscarte o agregarte fácilmente (por email o @username) con total privacidad.
+          </p>
+        </div>
+        <div style="text-align:left; background:rgba(255,255,255,0.03); padding:16px; border-radius:12px; border:1px solid rgba(255,255,255,0.06);">
+          <label style="display:block; color:#00f5d4; font-size:0.82rem; font-weight:600; margin-bottom:8px; text-transform:uppercase; letter-spacing:0.5px;">Configura el tuyo ahora</label>
           <div style="position:relative; display:flex; align-items:center;">
-            <span style="position:absolute; left:14px; color:#00f5d4; font-weight:600; font-size:1rem;">@</span>
-            <input id="setup-username-input" placeholder="tu_apodo_unico" maxlength="25" style="width:100%; padding:12px 12px 12px 34px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:10px; color:#fff; font-size:1rem; outline:none; font-family:'Inter',sans-serif;" />
+            <span style="position:absolute; left:14px; color:#00f5d4; font-weight:700; font-size:1.1rem;">@</span>
+            <input id="setup-username-input" placeholder="tu_usuario_unico" maxlength="25" style="width:100%; padding:13px 14px 13px 36px; background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.15); border-radius:10px; color:#fff; font-size:1.05rem; font-weight:600; outline:none; transition:border-color 0.2s; font-family:'Inter',sans-serif;" />
           </div>
           <div id="setup-username-error" style="color:#f87171; font-size:0.82rem; margin-top:8px; min-height:1.2em;"></div>
         </div>
-        <button id="setup-username-submit" style="padding:13px; background:linear-gradient(135deg, #00f5d4, #00c4a7); color:#0a0a0f; font-weight:700; border:none; border-radius:10px; cursor:pointer; font-size:0.95rem; transition:transform 0.2s;">Guardar username</button>
+        <button id="setup-username-submit" style="padding:14px; background:linear-gradient(135deg, #00f5d4, #00c4a7); color:#0a0a0f; font-weight:800; border:none; border-radius:12px; cursor:pointer; font-size:0.98rem; text-transform:uppercase; letter-spacing:0.4px; transition:all 0.2s; box-shadow:0 4px 20px rgba(0,245,212,0.3);">Confirmar y Comenzar 🚀</button>
       </div>
     `;
     document.body.appendChild(modalOverlay);
@@ -306,7 +304,7 @@ async function verifyOrRequireUsername(user) {
             if (uCheck.exists() && uCheck.val() !== user.uid) {
                 errDiv.textContent = 'Este @username ya está siendo usado por otra persona.';
                 submitBtn.disabled = false;
-                submitBtn.textContent = 'Guardar username';
+                submitBtn.textContent = 'Confirmar y Comenzar 🚀';
                 return;
             }
 
@@ -314,7 +312,10 @@ async function verifyOrRequireUsername(user) {
                 await set(ref(db, `usernames/${currentUsername.toLowerCase()}`), null).catch(()=>{});
             }
             await set(ref(db, `usernames/${val.toLowerCase()}`), user.uid);
-            await update(ref(db, `users/${user.uid}`), { username: val });
+            await update(ref(db, `users/${user.uid}`), { 
+                username: val,
+                usernameSetupComplete: true
+            });
             
             const { updateProfile } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js');
             await updateProfile(user, { displayName: val });
@@ -324,7 +325,7 @@ async function verifyOrRequireUsername(user) {
             console.error(e);
             errDiv.textContent = 'Error al guardar el username. Inténtalo de nuevo.';
             submitBtn.disabled = false;
-            submitBtn.textContent = 'Guardar username';
+            submitBtn.textContent = 'Confirmar y Comenzar 🚀';
         }
     });
 }
