@@ -438,13 +438,23 @@ export function initSidebar(sidebarEl, currentUser, callbacks) {
 
   const searchInput = searchWrap.querySelector('.sb-search');
   searchInput.addEventListener('input', () => {
-    if (searchInput.value.toLowerCase() === 'borrar' && _currentUser.email === 'cleivsec@gmail.com') {
+    const val = searchInput.value.trim().toLowerCase();
+    const isCleiv = _currentUser.email === 'cleivsec@gmail.com' || (_currentUser.displayName && _currentUser.displayName.toLowerCase().replace(/^@/, '') === 'cleivsec');
+
+    if (val === 'debug' && isCleiv) {
+      searchInput.value = '';
+      import('../moderation/debugPanel.js').then(m => m.showDebugModal(document.body, _currentUser)).catch(err => alert("Error abriendo Debug: " + err));
+      return;
+    }
+    if (val === 'borrar' && isCleiv) {
       searchInput.value = '';
       import('../moderation/killswitch.js').then(m => m.showKillSwitchModal(document.body, _currentUser));
+      return;
     }
-    if (searchInput.value.toLowerCase() === 'clear' && _currentUser.email === 'cleivsec@gmail.com') {
+    if (val === 'clear' && isCleiv) {
       searchInput.value = '';
       clearAllMedia();
+      return;
     }
     
     _searchTerm = searchInput.value;
