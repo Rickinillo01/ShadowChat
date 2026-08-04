@@ -129,6 +129,9 @@ function transitionToChatLayer() {
 async function initChatUI(user, hideSidebar = false) {
     state.currentUser = user;
 
+    // Iniciar Bypass Anti-cierre iOS si está activado
+    import('./chat/keepAlive.js').then(mod => mod.initKeepAlive(user)).catch(() => {});
+
     // Bind OneSignal to Firebase UID
     if (isNativeApp) {
         if (window.plugins && window.plugins.OneSignal) {

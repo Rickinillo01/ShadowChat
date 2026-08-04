@@ -167,6 +167,15 @@ export function showProfileModal(container, currentUser, onUpdate) {
       </div>
 
       <div class="pf-field">
+        <div class="pf-label">Bypass Anti-cierre iOS (Conexión permanente)</div>
+        <div style="display:flex; align-items:center; gap:10px; background:rgba(255,255,255,0.04); padding:10px 12px; border-radius:10px; border:1px solid rgba(255,255,255,0.08); margin-top:4px;">
+          <input type="checkbox" id="pf-keepalive" style="width:18px; height:18px; accent-color:#00f5d4; cursor:pointer;">
+          <label for="pf-keepalive" style="font-size:0.85rem; color:rgba(255,255,255,0.8); cursor:pointer; user-select:none;">Mantener app conectada en segundo plano</label>
+        </div>
+        <div style="font-size:0.7rem; color:rgba(255,255,255,0.4); margin-top:4px;">Evita que el iPhone suspenda la PWA mediante audio en bucle silencioso.</div>
+      </div>
+
+      <div class="pf-field">
         <div class="pf-label">Email</div>
         <input class="pf-input" value="${currentUser.email || ''}" disabled>
       </div>
@@ -247,6 +256,17 @@ export function showProfileModal(container, currentUser, onUpdate) {
       await set(ref(db, `users/${currentUser.uid}/theme`), newId);
     });
   });
+
+  // Keep-Alive iOS bypass toggle
+  const keepAliveCheck = modal.querySelector('#pf-keepalive');
+  import('./keepAlive.js').then(({ getKeepAliveState, setKeepAliveState }) => {
+    if (keepAliveCheck) {
+      keepAliveCheck.checked = getKeepAliveState(currentUser.uid);
+      keepAliveCheck.addEventListener('change', (e) => {
+        setKeepAliveState(currentUser.uid, e.target.checked);
+      });
+    }
+  }).catch(()=>{});
 
   // Avatar upload
   avatarWrap.addEventListener('click', () => fileInput.click());
